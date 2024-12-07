@@ -90,9 +90,20 @@ logger:
   # writerColorEnable:     false                 # 日志文件是否带上颜色。默认false，表示不带颜色
 
 # 配置数据库
-# database:
-#   default:
-#   - link: "mysql:root:12345678@tcp(127.0.0.1:3306)/test"
+database:
+  logger:
+    level: "all"
+    stdout: true
+    Path: "resource/log/sql"
+
+  default:
+   link: "mysql:root:123456@tcp(192.168.1.14:3306)/sms"
+   debug: true
+   charset: "utf8mb4" #数据库编码
+   dryRun: false #空跑
+   maxIdle: 10 #连接池最大闲置的连接数
+   maxOpen: 10 #连接池最大打开的连接数
+   maxLifetime: "30s" #(单位秒)连接对象可重复使用的时间长度
 # database:
 #   分组名称:
 #     host:                  "地址"
