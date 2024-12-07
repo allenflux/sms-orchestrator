@@ -48,5 +48,5 @@ var (
 func InitFun(ctx context.Context) {
 	CompressAndClearLog(ctx)
 	libOss.InitOssClient(ctx)
-	//DBUpgrade(ctx)
+	DBUpgrade(ctx)
 }
