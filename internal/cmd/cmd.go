@@ -30,7 +30,7 @@ var (
 			//		v1.NewCommon(),
 			//	)
 			//})
-			apiServer.Group("/api/v1/admin", func(group *ghttp.RouterGroup) {
+			apiServer.Group("/api/v1/sms", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
 				//service.SysUser().CheckLogin,
 				//service.SystemMiddleware().PrintAndHideError, service.SystemMiddleware().Ctx, service.SystemMiddleware().Auth, service.SystemMiddleware().PrintParams)

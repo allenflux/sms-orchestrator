@@ -35,7 +35,7 @@ type TaskListRes struct {
 
 type TaskRecordReq struct {
 	model.PageReq
-	g.Meta            `path:"/task/list" tags:"群发记录" method:"get" dc:"查看群发短信列表" `
+	g.Meta            `path:"/task/record" tags:"群发记录" method:"get" dc:"查看群发短信列表" `
 	ProjectID         int      `json:"project_id" dc:"所属项目id" example:"1"`
 	SmsStatus         string   `json:"sms_status" dc:"SMS Status 发送状态"`
 	TaskName          string   `json:"task_name" dc:"任务名称"`
@@ -60,5 +60,43 @@ type TaskRecordRes struct {
 		ProjectName       string `json:"project_name" dc:"Project Name 所属项目"`
 		StartTime         string `json:"start_time" dc:"开始时间"`
 		CreateTime        string `json:"create_time" dc:"创建时间"`
+	} `json:"data"`
+}
+
+type ConversationListReq struct {
+	g.Meta `path:"/conversation/list" tags:"消息对话" method:"get" dc:"查看群发短信列表" `
+	model.PageReq
+	ProjectID          int    `json:"project_id" v:"required"`
+	SearchWord         string `json:"search_word" dc:"搜索对话"`
+	ConversationStatus int    `json:"conversation_status" dc:"对话状态 1-所有对话 2-正在对话" default:"1"`
+}
+
+type ConversationListRes struct {
+	commonApi.ListRes
+	Data struct {
+		ConversationID      int    `json:"conversation_id"`
+		ConversationNumber  string `json:"conversation_number" dc:"目标电话号码"`
+		SmsTime             string `json:"sms_time"`
+		ConversationContent string `json:"conversation_content" dc:"消息内容"`
+	} `json:"data"`
+}
+
+type ConversationRecordReq struct {
+	model.PageReq
+	g.Meta         `path:"/conversation/record" tags:"消息对话" method:"get" dc:"单点对话记录" `
+	ConversationID int `json:"conversation_id"`
+}
+
+type ConversationRecord struct {
+	Sender   string `json:"sender"`
+	Receiver string `json:"receiver"`
+	Time     string `json:"time"`
+	Content  string `json:"content"`
+}
+type ConversationRecordRes struct {
+	commonApi.ListRes
+	ReceiverNumber string `json:"receiver_number" dc:"Receiver 字段代表对方 人类"`
+	Data           struct {
+		History []ConversationRecord `json:"history"`
 	} `json:"data"`
 }

@@ -9,6 +9,7 @@ import (
 type ProjectListReq struct {
 	g.Meta `path:"/project/list" tags:"项目管理" method:"get" dc:"查看项目列表" `
 	model.PageReq
+	KeyWordSearch string `json:"key_word_search" dc:"关键字查询"`
 }
 type ProjectListRes struct {
 	Data []struct {
@@ -51,12 +52,13 @@ type ProjectDeleteRes struct {
 type DeviceListReq struct {
 	g.Meta `path:"/device/list" tags:"设备列表" method:"get" dc:"查看设备列表" `
 	model.PageReq
-	DateRange    []string `json:"date_range" p:"dateRange" description:"日期范围"`
-	ProjectID    string   `json:"project_id" dc:"查询条件中的项目ID"`
-	SentStatus   int      `json:"sent_status" dc:"需要查询的设备状态"`
-	TaskName     string   `json:"task_name" dc:"任务名称"`
-	Number       string   `json:"number" dc:"设备号码"`
-	DeviceNumber string   `json:"device_number" dc:"设备序列号"`
+	SentDateRange   []string `json:"sent_date_range" p:"dateRange" description:"发送时间日期范围"`
+	CreateDateRange []string `json:"create_date_range" p:"dateRange" description:"创建时间日期范围"`
+	ProjectID       string   `json:"project_id" dc:"查询条件中的项目ID"`
+	SentStatus      int      `json:"sent_status" dc:"需要查询的设备状态"`
+	TaskName        string   `json:"task_name" dc:"任务名称"`
+	Number          string   `json:"number" dc:"设备号码"`
+	DeviceNumber    string   `json:"device_number" dc:"设备序列号"`
 }
 type DeviceListRes struct {
 	Data struct {
