@@ -7,10 +7,19 @@ package v1
 import (
 	"context"
 
+	"sms_backend/api/v1/career"
 	"sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/api/v1/system"
 )
+
+type IV1Career interface {
+	Register(ctx context.Context, req *career.RegisterReq) (res *career.RegisterRes, err error)
+	ReportInfo(ctx context.Context, req *career.ReportInfoReq) (res *career.ReportInfoRes, err error)
+	FetchTask(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error)
+	ReportTaskResult(ctx context.Context, req *career.ReportTaskResultReq) (res *career.ReportTaskResultRes, err error)
+	ReportReceiveContent(ctx context.Context, req *career.ReportReceiveContentReq) (res *career.ReportReceiveContentRes, err error)
+}
 
 type IV1Common interface {
 	Captcha(ctx context.Context, req *common.CaptchaReq) (res *common.CaptchaRes, err error)
@@ -36,6 +45,9 @@ type IV1Sms interface {
 	SubUpdateGroup(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error)
 	SubDeleteGroup(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error)
 	SubTaskList(ctx context.Context, req *sms.SubTaskListReq) (res *sms.SubTaskListRes, err error)
+	SubTaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskCreateRes, err error)
+	SubTaskDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (res *sms.SubTaskDeleteRes, err error)
+	SubTaskRecord(ctx context.Context, req *sms.SubTaskRecordReq) (res *sms.SubTaskRecordRes, err error)
 }
 
 type IV1System interface {

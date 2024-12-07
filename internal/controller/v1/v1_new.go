@@ -25,3 +25,9 @@ type ControllerSystem struct{}
 func NewSystem() v1.IV1System {
 	return &ControllerSystem{}
 }
+
+type ControllerCareer struct{}
+
+func NewCareer() v1.IV1Career {
+	return &ControllerCareer{}
+}
