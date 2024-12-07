@@ -39,6 +39,15 @@ var (
 				)
 			})
 
+			apiServer.Group("/api/v1/career", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				//service.SysUser().CheckLogin,
+				//service.SystemMiddleware().PrintAndHideError, service.SystemMiddleware().Ctx, service.SystemMiddleware().Auth, service.SystemMiddleware().PrintParams)
+				group.Bind(
+					v1.NewCareer(),
+				)
+			})
+
 			apiServer.Run()
 			return nil
 		},
