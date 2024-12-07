@@ -26,6 +26,16 @@ type IV1Sms interface {
 	ProjectDelete(ctx context.Context, req *sms.ProjectDeleteReq) (res *sms.ProjectDeleteRes, err error)
 	DeviceList(ctx context.Context, req *sms.DeviceListReq) (res *sms.DeviceListRes, err error)
 	AllocateDevice2Project(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (res *sms.AllocateDevice2ProjectRes, err error)
+	TaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error)
+	TaskRecord(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
+	ConversationList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error)
+	ConversationRecord(ctx context.Context, req *sms.ConversationRecordReq) (res *sms.ConversationRecordRes, err error)
+	SubDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (res *sms.SubDeviceListRes, err error)
+	SubGroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error)
+	SubCreateGroup(ctx context.Context, req *sms.SubCreateGroupReq) (res *sms.SubCreateGroupRes, err error)
+	SubUpdateGroup(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error)
+	SubDeleteGroup(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error)
+	SubTaskList(ctx context.Context, req *sms.SubTaskListReq) (res *sms.SubTaskListRes, err error)
 }
 
 type IV1System interface {
