@@ -4,4 +4,4 @@ Background
 Overview  
 Overall Architecture!
 
-[SMS Project - Frame 1.jpg](doc%2Fimg%2FSMS%20Project%20-%20Frame%201.jpg)
+![SMS Project - Frame 1.jpg](./doc/img/SMS%20Project%20-%20Frame%201.jpg)
