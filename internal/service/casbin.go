@@ -2,9 +2,9 @@ package service
 
 import (
 	"context"
+	"sms_backend/internal/dao"
+	"sms_backend/internal/model/entity"
 	"sync"
-	"upay_backend/internal/dao"
-	"upay_backend/internal/model/entity"
 
 	"github.com/casbin/casbin/v2"
 	"github.com/casbin/casbin/v2/model"
@@ -72,7 +72,6 @@ func (a *adapterCasbin) SavePolicy(model model.Model) (err error) {
 			}
 		}
 	}
-
 	for ptype, ast := range model["g"] {
 		for _, rule := range ast.Policy {
 			line := savePolicyLine(ptype, rule)

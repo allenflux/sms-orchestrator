@@ -7,9 +7,9 @@ package service
 
 import (
 	"context"
-	"upay_backend/api/v1/system"
-	"upay_backend/internal/model"
-	"upay_backend/internal/model/entity"
+	"sms_backend/api/v1/system"
+	"sms_backend/internal/model"
+	"sms_backend/internal/model/entity"
 )
 
 type (

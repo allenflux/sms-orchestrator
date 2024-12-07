@@ -7,7 +7,7 @@ package service
 
 import (
 	"context"
-	"upay_backend/internal/consts"
+	"sms_backend/internal/consts"
 )
 
 type (

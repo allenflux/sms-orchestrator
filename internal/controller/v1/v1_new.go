@@ -19,3 +19,9 @@ type ControllerSms struct{}
 func NewSms() v1.IV1Sms {
 	return &ControllerSms{}
 }
+
+type ControllerSystem struct{}
+
+func NewSystem() v1.IV1System {
+	return &ControllerSystem{}
+}
