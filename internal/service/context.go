@@ -7,8 +7,8 @@ package service
 
 import (
 	"context"
-	"upay_backend/internal/consts"
-	"upay_backend/internal/model"
+	"sms_backend/internal/consts"
+	"sms_backend/internal/model"
 
 	"github.com/gogf/gf/v2/net/ghttp"
 )

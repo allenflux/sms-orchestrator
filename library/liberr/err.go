@@ -10,7 +10,7 @@ package liberr
 import (
 	"context"
 	"github.com/gogf/gf/v2/frame/g"
-	"upay_backend/library/libResponse"
+	"sms_backend/library/libResponse"
 )
 
 func ErrIsNil(ctx context.Context, err error, msg ...string) {

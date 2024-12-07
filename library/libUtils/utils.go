@@ -23,8 +23,8 @@ import (
 	"net/http"
 	"os"
 	"path"
+	"sms_backend/internal/consts"
 	"strings"
-	"upay_backend/internal/consts"
 )
 
 // EncryptPassword 密码加密
