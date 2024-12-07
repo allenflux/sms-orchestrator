@@ -7,43 +7,15 @@ import (
 )
 
 func DBUpgrade(ctx context.Context) {
-	addHasCommitToUserDetail(ctx)
-	addTableFundingCard(ctx)
-	addTableRechargeList(ctx)
-	addBalanceToApplyList(ctx)
-	addFileToCardLevel(ctx)
-	addTransactionRecord(ctx)
-	addNoteToApplyList(ctx)
-	addKYCStatusToAppUser(ctx)
-	addUserCardStatusToAppUser(ctx)
-	addBankCardStatusToAppUser(ctx)
-	// addApplyStatusToAppUser(ctx)
+	addTableDeviceList(ctx)
+	addTableProjectList(ctx)
+	addTableSubGroup(ctx)
+	addTableSmsMissionReport(ctx)
+	addTableSmsMissionRecord(ctx)
+	addTableSmsChartLog(ctx)
 }
 
-func addHasCommitToUserDetail(ctx context.Context) {
-	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc app_user_detail")
-	if err != nil {
-		g.Log().Error(ctx, err)
-		return
-	}
-	list := result.List()
-	for _, m := range list {
-		if m["Field"] == "has_commit" {
-			needUpgrade = false
-			break
-		}
-	}
-	if needUpgrade {
-		sql := "ALTER TABLE `app_user_detail` CHANGE `has_commit` `has_commit` INT  NOT NULL  DEFAULT 1  COMMENT '是否提交到万事达,1否2是';"
-		_, err = g.DB().Exec(ctx, sql)
-		if err != nil {
-			g.Log().Error(ctx, err)
-		}
-	}
-}
-
-func addTableFundingCard(ctx context.Context) {
+func addTableDeviceList(ctx context.Context) {
 	needUpgrade := true
 	result, err := g.DB().GetAll(ctx, "show tables")
 	if err != nil {
@@ -52,13 +24,13 @@ func addTableFundingCard(ctx context.Context) {
 	}
 	list := result.List()
 	for _, m := range list {
-		if m["Tables_in_upay"] == "funding_card" {
+		if m["Tables_in_sms"] == "device_list" {
 			needUpgrade = false
 			break
 		}
 	}
 	if needUpgrade {
-		sql := "CREATE TABLE `funding_card` (`id` int NOT NULL AUTO_INCREMENT,`funding_card_no` varchar(255) NOT NULL COMMENT '资金卡号',`bank_uid` varchar(255) NOT NULL COMMENT '银行uid',`balance` decimal(10,2) NOT NULL COMMENT '余额（HKD）',`created_at` timestamp NOT NULL COMMENT '创建时间',`updated_at` timestamp NOT NULL COMMENT '修改时间',`deleted_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='资金卡表';"
+		sql := "CREATE TABLE `device_list` (`id` int NOT NULL AUTO_INCREMENT,`device_id` int NOT NULL COMMENT '设备id',`number` varchar(255) DEFAULT NULL COMMENT '设备号码',`active_time` timestamp NULL DEFAULT NULL COMMENT '激活时间',`owner_account` varchar(255) NOT NULL COMMENT '所属账号',`assigned_items` varchar(255) NOT NULL COMMENT '所属项目',`sent_status` tinyint NOT NULL COMMENT '发送状态，1-异常 2-占用 3-空闲',`quantity_sent` int NOT NULL COMMENT '发送数量',`quantity_all` int NOT NULL COMMENT '全部数量',`device_status` tinyint NOT NULL COMMENT '设备状态，1-异常 2-正常',`group_name` varchar(255) DEFAULT NULL COMMENT '分组名称',`group_id` int DEFAULT NULL COMMENT '分组id',`created_at` timestamp NOT NULL COMMENT '创建时间',`update_at` timestamp NOT NULL COMMENT '修改时间',`delete_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
 		_, err = g.DB().Exec(ctx, sql)
 		if err != nil {
 			g.Log().Error(ctx, err)
@@ -66,7 +38,7 @@ func addTableFundingCard(ctx context.Context) {
 	}
 }
 
-func addTableRechargeList(ctx context.Context) {
+func addTableProjectList(ctx context.Context) {
 	needUpgrade := true
 	result, err := g.DB().GetAll(ctx, "show tables")
 	if err != nil {
@@ -75,13 +47,13 @@ func addTableRechargeList(ctx context.Context) {
 	}
 	list := result.List()
 	for _, m := range list {
-		if m["Tables_in_upay"] == "recharge_list" {
+		if m["Tables_in_sms"] == "project_list" {
 			needUpgrade = false
 			break
 		}
 	}
 	if needUpgrade {
-		sql := "CREATE TABLE `recharge_list` (\n`id` int NOT NULL AUTO_INCREMENT,\n`fund_card_no` varchar(255) NOT NULL DEFAULT '' COMMENT '资金卡号',\n`card_no` varchar(255) NOT NULL DEFAULT '' COMMENT '对方卡号',\n`amount` decimal(10,2) NOT NULL DEFAULT '0.00' COMMENT '金额（hkd）',\n`name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '对方姓名',\n`apply_list_id` int NOT NULL DEFAULT '0' COMMENT '申请列表id',\n`admin_username` varchar(255) NOT NULL DEFAULT '' COMMENT '操作账号',\n`created_at` timestamp NULL DEFAULT NULL COMMENT '充值时间',\n`updated_at` timestamp NULL DEFAULT NULL,\n`deleted_at` timestamp NULL DEFAULT NULL,\nPRIMARY KEY (`id`)\n) ENGINE=InnoDB AUTO_INCREMENT=44 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='充值记录'"
+		sql := "CREATE TABLE `project_list` (`id` int NOT NULL AUTO_INCREMENT,`project_name` varchar(255) DEFAULT NULL COMMENT '项目名称',`quantity_device` int NOT NULL COMMENT '设备数量',`associated_account` varchar(255) DEFAULT NULL COMMENT '关联账号',`note` varchar(255) DEFAULT NULL COMMENT '备注',`created_at` timestamp NOT NULL COMMENT '创建时间',`update_at` timestamp NOT NULL COMMENT '修改时间',`delete_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
 		_, err = g.DB().Exec(ctx, sql)
 		if err != nil {
 			g.Log().Error(ctx, err)
@@ -89,53 +61,7 @@ func addTableRechargeList(ctx context.Context) {
 	}
 }
 
-func addBalanceToApplyList(ctx context.Context) {
-	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc apply_list")
-	if err != nil {
-		g.Log().Error(ctx, err)
-		return
-	}
-	list := result.List()
-	for _, m := range list {
-		if m["Field"] == "balance" {
-			needUpgrade = false
-			break
-		}
-	}
-	if needUpgrade {
-		sql := "ALTER TABLE `apply_list` \nADD COLUMN `balance` decimal(10, 2) NOT NULL COMMENT '余额的信息';"
-		_, err = g.DB().Exec(ctx, sql)
-		if err != nil {
-			g.Log().Error(ctx, err)
-		}
-	}
-}
-
-func addFileToCardLevel(ctx context.Context) {
-	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc card_level")
-	if err != nil {
-		g.Log().Error(ctx, err)
-		return
-	}
-	list := result.List()
-	for _, m := range list {
-		if m["Field"] == "file" {
-			needUpgrade = false
-			break
-		}
-	}
-	if needUpgrade {
-		sql := "ALTER TABLE `card_level` \nADD COLUMN `file` longtext NULL COMMENT '文件base64值';"
-		_, err = g.DB().Exec(ctx, sql)
-		if err != nil {
-			g.Log().Error(ctx, err)
-		}
-	}
-}
-
-func addTransactionRecord(ctx context.Context) {
+func addTableSubGroup(ctx context.Context) {
 	needUpgrade := true
 	result, err := g.DB().GetAll(ctx, "show tables")
 	if err != nil {
@@ -144,37 +70,36 @@ func addTransactionRecord(ctx context.Context) {
 	}
 	list := result.List()
 	for _, m := range list {
-		if m["Tables_in_upay"] == "transaction_record" {
+		if m["Tables_in_sms"] == "sub_group" {
 			needUpgrade = false
 			break
 		}
 	}
 	if needUpgrade {
-		sql := "CREATE TABLE `transaction_record` (\n  `id` varchar(127) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',\n  `xid` varchar(127) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '用户xid',\n  `ref_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',\n  `card_account_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',\n  `card_last_4` varchar(7) NOT NULL DEFAULT '',\n  `card_embossed_name` varchar(127) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',\n  `created_at` timestamp NULL DEFAULT NULL COMMENT '创建时间',\n  `status` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '状态 pending 待处理  posted 已完成 declined 已拒绝  vodi 已取消',\n  `posted_at` timestamp NULL DEFAULT NULL,\n  `intent` varchar(15) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '交易目的/方式，charge收费 refund退款 topup充值 repay偿还 cashback现金返回 interest利息 fee费用 other其他',\n  `amount` decimal(10,2) NOT NULL DEFAULT '0.00',\n  `entry_type` varchar(31) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',\n  `currency` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '',\n  `description` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL DEFAULT '' COMMENT '响应消息（例如：响应被接受）'\n) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci COMMENT='交易记录';"
+		sql := "CREATE TABLE `sub_group` (`id` int NOT NULL AUTO_INCREMENT,`sub_user_id` int NOT NULL COMMENT '子账号id',`project_id` int NOT NULL COMMENT '项目id',`sub_group_name` varchar(255) NOT NULL COMMENT '分组名称',`created_at` timestamp NOT NULL COMMENT '创建时间',`update_at` timestamp NOT NULL COMMENT '修改时间',`delete_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
 		_, err = g.DB().Exec(ctx, sql)
 		if err != nil {
 			g.Log().Error(ctx, err)
 		}
 	}
-
 }
 
-func addNoteToApplyList(ctx context.Context) {
+func addTableSmsMissionReport(ctx context.Context) {
 	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc apply_list")
+	result, err := g.DB().GetAll(ctx, "show tables")
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return
 	}
 	list := result.List()
 	for _, m := range list {
-		if m["Field"] == "note" {
+		if m["Tables_in_sms"] == "sms_mission_report" {
 			needUpgrade = false
 			break
 		}
 	}
 	if needUpgrade {
-		sql := "ALTER TABLE `upay`.`apply_list` \nADD COLUMN `note` varchar(255) NULL COMMENT '备注信息';"
+		sql := "CREATE TABLE `sms_mission_report` (`id` int NOT NULL AUTO_INCREMENT,`task_id` int NOT NULL COMMENT '任务id',`task_name` varchar(255) NOT NULL COMMENT '任务名称',`file_name` varchar(255) NOT NULL COMMENT '文件名',`device_quota` varchar(255) NOT NULL COMMENT '执行设备',`task_status` tinyint NOT NULL COMMENT '任务状态，1-待发送 2-发送中 3-已发送 4-已撤销',`sms_quantity` int NOT NULL COMMENT '短信总条数',`surplus_quantity` int NOT NULL COMMENT '剩余数量',`quantity_sent` int NOT NULL COMMENT '已发送数量',`associated_account` varchar(255) NOT NULL COMMENT '所属子账号',`interval_time` varchar(255) NOT NULL COMMENT '间隔时间(秒)',`start_time` timestamp NOT NULL COMMENT '任务开始时间',`created_at` timestamp NOT NULL COMMENT '创建时间',`update_at` timestamp NOT NULL COMMENT '修改时间',`delete_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
 		_, err = g.DB().Exec(ctx, sql)
 		if err != nil {
 			g.Log().Error(ctx, err)
@@ -182,122 +107,48 @@ func addNoteToApplyList(ctx context.Context) {
 	}
 }
 
-func addKYCStatusToAppUser(ctx context.Context) {
+func addTableSmsMissionRecord(ctx context.Context) {
 	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc app_user")
+	result, err := g.DB().GetAll(ctx, "show tables")
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return
 	}
 	list := result.List()
 	for _, m := range list {
-		if m["Field"] == "kyc_status" {
+		if m["Tables_in_sms"] == "sms_mission_record" {
 			needUpgrade = false
 			break
 		}
 	}
 	if needUpgrade {
-		sql := "ALTER TABLE `upay`.`app_user` ADD COLUMN `kyc_status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0-待kyc 1-已kyc' AFTER `status`;"
+		sql := "CREATE TABLE `sms_mission_record` (`id` int NOT NULL AUTO_INCREMENT,`task_name` varchar(255) NOT NULL COMMENT '任务名称',`sub_task_id` int NOT NULL COMMENT '子任务id',`target_phone_number` varchar(255) NOT NULL COMMENT '目标手机号',`device_number` varchar(255) NOT NULL COMMENT '执行设备号',`sms_topic` varchar(255) NOT NULL COMMENT '短信主题',`sms_content` varchar(255) NOT NULL COMMENT '短信内容',`sms_status` varchar(255) NOT NULL COMMENT '短信发送状态，1-失败 2-成功',`associated_account` varchar(255) NOT NULL COMMENT '所属子账号',`project_name` varchar(255) NOT NULL COMMENT '所属项目名称',`project_id` int NOT NULL COMMENT '所属项目id',`start_time` timestamp NOT NULL COMMENT '开始时间',`created_at` timestamp NOT NULL COMMENT '创建时间',`update_at` timestamp NOT NULL COMMENT '修改时间',`delete_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
 		_, err = g.DB().Exec(ctx, sql)
-		if err != nil {
-			g.Log().Error(ctx, err)
-			return
-		}
-
-		sql2 := "UPDATE `upay`.`app_user` SET `kyc_status` = 1 WHERE `status`>1;"
-		_, err = g.DB().Exec(ctx, sql2)
 		if err != nil {
 			g.Log().Error(ctx, err)
 		}
 	}
 }
 
-func addUserCardStatusToAppUser(ctx context.Context) {
+func addTableSmsChartLog(ctx context.Context) {
 	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc app_user")
+	result, err := g.DB().GetAll(ctx, "show tables")
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return
 	}
 	list := result.List()
 	for _, m := range list {
-		if m["Field"] == "user_card_status" {
+		if m["Tables_in_sms"] == "sms_chart_log" {
 			needUpgrade = false
 			break
 		}
 	}
 	if needUpgrade {
-		sql := "ALTER TABLE `upay`.`app_user` ADD COLUMN `user_card_status` tinyint(1) NOT NULL DEFAULT 0 COMMENT '0-未上传 1-已上传' AFTER `kyc_status`;"
+		sql := "CREATE TABLE `sms_chart_log` (`id` int NOT NULL AUTO_INCREMENT,`project_name` varchar(255) NOT NULL COMMENT '项目名称',`project_id` int NOT NULL COMMENT '项目id',`target_phone_number` varchar(255) NOT NULL COMMENT '目标手机号',`device_number` varchar(255) NOT NULL COMMENT '执行设备号',`sms_topic` varchar(255) NOT NULL COMMENT '短信主题',`sms_content` varchar(255) NOT NULL COMMENT '短信内容',`sms_status` tinyint NOT NULL COMMENT '短信发送状态，1-失败 2-成',`associated_account` varchar(255) NOT NULL COMMENT '所属子账号',`created_at` timestamp NOT NULL COMMENT '创建时间',`update_at` timestamp NOT NULL COMMENT '修改时间',`delete_at` timestamp NULL DEFAULT NULL COMMENT '删除时间',PRIMARY KEY (`id`)) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;"
 		_, err = g.DB().Exec(ctx, sql)
-		if err != nil {
-			g.Log().Error(ctx, err)
-			return
-		}
-
-		sql2 := "UPDATE `upay`.`app_user` SET `user_card_status` = 1 WHERE `status`>2;"
-		_, err = g.DB().Exec(ctx, sql2)
 		if err != nil {
 			g.Log().Error(ctx, err)
 		}
 	}
 }
-
-func addBankCardStatusToAppUser(ctx context.Context) {
-	needUpgrade := true
-	result, err := g.DB().GetAll(ctx, "desc app_user")
-	if err != nil {
-		g.Log().Error(ctx, err)
-		return
-	}
-	list := result.List()
-	for _, m := range list {
-		if m["Field"] == "bank_card_status" {
-			needUpgrade = false
-			break
-		}
-	}
-	if needUpgrade {
-		sql := "ALTER TABLE `upay`.`app_user` ADD COLUMN `bank_card_status` tinyint(1) NOT NULL COMMENT '0-未配卡 1-已配卡' AFTER `user_card_status`;"
-		_, err = g.DB().Exec(ctx, sql)
-		if err != nil {
-			g.Log().Error(ctx, err)
-			return
-		}
-
-		sql2 := "UPDATE `upay`.`app_user` SET `bank_card_status` = 1 WHERE `status`>3;"
-		_, err = g.DB().Exec(ctx, sql2)
-		if err != nil {
-			g.Log().Error(ctx, err)
-		}
-	}
-}
-
-// func addApplyStatusToAppUser(ctx context.Context) {
-// 	needUpgrade := true
-// 	result, err := g.DB().GetAll(ctx, "desc app_user")
-// 	if err != nil {
-// 		g.Log().Error(ctx, err)
-// 		return
-// 	}
-// 	list := result.List()
-// 	for _, m := range list {
-// 		if m["Field"] == "apply_status" {
-// 			needUpgrade = false
-// 			break
-// 		}
-// 	}
-// 	if needUpgrade {
-// 		sql := "ALTER TABLE `upay`.`app_user` ADD COLUMN `apply_status` tinyint(1) NOT NULL COMMENT '0-待申请 1-已申请' AFTER `bank_card_status`;"
-// 		_, err = g.DB().Exec(ctx, sql)
-// 		if err != nil {
-// 			g.Log().Error(ctx, err)
-// 			return
-// 		}
-
-// 		sql2 := "UPDATE `upay`.`app_user` SET `apply_status` = 1 WHERE `status`=5;"
-// 		_, err = g.DB().Exec(ctx, sql2)
-// 		if err != nil {
-// 			g.Log().Error(ctx, err)
-// 		}
-// 	}
-// }
