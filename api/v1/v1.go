@@ -24,8 +24,6 @@ type IV1Career interface {
 type IV1Common interface {
 	Captcha(ctx context.Context, req *common.CaptchaReq) (res *common.CaptchaRes, err error)
 	FileUpload(ctx context.Context, req *common.FileUploadReq) (res *common.FileUploadRes, err error)
-	GetCountryList(ctx context.Context, req *common.GetCountryListReq) (res *common.GetCountryListRes, err error)
-	ApplyCallback(ctx context.Context, req *common.ApplyCallbackReq) (res *common.ApplyCallbackRes, err error)
 }
 
 type IV1Sms interface {
@@ -35,6 +33,7 @@ type IV1Sms interface {
 	ProjectDelete(ctx context.Context, req *sms.ProjectDeleteReq) (res *sms.ProjectDeleteRes, err error)
 	DeviceList(ctx context.Context, req *sms.DeviceListReq) (res *sms.DeviceListRes, err error)
 	AllocateDevice2Project(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (res *sms.AllocateDevice2ProjectRes, err error)
+	AllocateAccount2Project(ctx context.Context, req *sms.AllocateAccount2ProjectReq) (res *sms.AllocateAccount2ProjectRes, err error)
 	TaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error)
 	TaskRecord(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
 	ConversationList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error)

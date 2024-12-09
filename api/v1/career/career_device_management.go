@@ -1,14 +1,17 @@
 package career
 
-import "github.com/gogf/gf/v2/frame/g"
+import (
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
+)
 
 // Register with the platform
 
 type RegisterReq struct {
 	g.Meta       `path:"/device" tags:"Device使用的API" method:"post" dc:"注册设备到平台" `
-	DeviceNumber string `json:"device_number" dc:"设备号" v:"required"`
-	PhoneNumber  string `json:"phone_number" dc:"设备手机号" v:"required"`
-	ActiveTime   string `json:"active_time" dc:"激活时间 时间戳" v:"required"`
+	DeviceNumber string      `json:"device_number" dc:"设备号" v:"required"`
+	PhoneNumber  string      `json:"phone_number" dc:"设备手机号" v:"required"`
+	ActiveTime   *gtime.Time `json:"active_time" dc:"激活时间 时间戳" v:"required"`
 }
 type RegisterRes struct{}
 
