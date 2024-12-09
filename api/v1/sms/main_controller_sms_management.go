@@ -14,23 +14,26 @@ type TaskListReq struct {
 	DateRange []string `json:"date_range" p:"dateRange" description:"日期范围"`
 }
 
+type TaskListResData struct {
+	ID                int    `json:"id" dc:"序号"`
+	ProjectID         int    `json:"project_id" dc:"项目id"`
+	ProjectName       string `json:"project_name" dc:"项目name"`
+	TaskName          string `json:"task_name" dc:"任务名称"`
+	FileName          string `json:"file_name" dc:"文件名"`
+	DeviceQuota       string `json:"device_quota" dc:"执行设备"`
+	TaskStatus        int    `json:"task_status" dc:"任务状态"`
+	SmsQuantity       int    `json:"sms_quantity" dc:"SMS Quantity 短信总条数"`
+	SurplusQuantity   int    `json:"surplus_quantity" dc:"剩余数量"`
+	QuantitySent      int    `json:"quantity_sent" dc:"以发送数量"`
+	AssociatedAccount string `json:"associated_account" dc:"所属子账号"`
+	IntervalTime      string `json:"interval_time" dc:"间隔时间"`
+	StartTime         string `json:"start_time" dc:"开始时间"`
+	CreateTime        string `json:"create_time" dc:"创建时间"`
+}
+
 type TaskListRes struct {
 	commonApi.ListRes
-	Data struct {
-		ID                int    `json:"id" dc:"序号"`
-		TaskID            int    `json:"task_id" dc:"任务id"`
-		TaskName          string `json:"task_name" dc:"任务名称"`
-		FileName          string `json:"file_name" dc:"文件名"`
-		DeviceQuota       int    `json:"device_quota" dc:"执行设备"`
-		TaskStatus        string `json:"task_status" dc:"任务状态"`
-		SmsQuantity       string `json:"sms_quantity" dc:"SMS Quantity 短信总条数"`
-		SurplusQuantity   string `json:"surplus_quantity" dc:"剩余数量"`
-		QuantitySent      string `json:"quantity_sent" dc:"以发送数量"`
-		AssociatedAccount string `json:"associated_account" dc:"所属子账号"`
-		IntervalTime      string `json:"interval_time" dc:"间隔时间"`
-		StartTime         string `json:"start_time" dc:"开始时间"`
-		CreateTime        string `json:"create_time" dc:"创建时间"`
-	} `json:"data"`
+	Data []TaskListResData `json:"data"`
 }
 
 type TaskRecordReq struct {

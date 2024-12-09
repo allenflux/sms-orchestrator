@@ -12,7 +12,8 @@ import (
 
 type (
 	IMainControllerDeviceManagement interface {
-		CetCardList(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (res *sms.AllocateDevice2ProjectRes, err error)
+		GetDeviceList(ctx context.Context, req *sms.DeviceListReq) (res *sms.DeviceListRes, err error)
+		AllocateDevice2Project(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (res *sms.AllocateDevice2ProjectRes, err error)
 	}
 )
 
