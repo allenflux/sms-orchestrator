@@ -10,4 +10,5 @@ import (
 	_ "sms_backend/internal/logic/mainControllerProjectManagement"
 	_ "sms_backend/internal/logic/mainControllerSmsManagement"
 	_ "sms_backend/internal/logic/subControllerDeviceManagement"
+	_ "sms_backend/internal/logic/subControllerSmsManagement"
 )

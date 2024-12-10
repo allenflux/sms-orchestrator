@@ -117,6 +117,8 @@ func (s *sSubControllerDeviceManagement) GroupDelete(ctx context.Context, req *s
 	return
 }
 
+// Get Group List
+
 func (s *sSubControllerDeviceManagement) GroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error) {
 	data := make([]*entity.SubGroup, 0)
 	if err = dao.SubGroup.Ctx(ctx).Where("sub_user_id=?", req.SubUserID).Scan(data); err != nil {
@@ -133,20 +135,20 @@ func (s *sSubControllerDeviceManagement) GroupList(ctx context.Context, req *sms
 	return
 }
 
-func (s *sSubControllerDeviceManagement) AllocateDevice2Group(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.AllocateDevice2ProjectRes, err error) {
+func (s *sSubControllerDeviceManagement) AllocateDevice2Group(ctx context.Context, req *sms.AllocateDevice2GroupReq) (res *sms.AllocateDevice2GroupRes, err error) {
 	if len(req.DeviceIdList) == 0 {
 		return nil, errors.New("device id list is empty")
 	}
-	// get project name
-	var project entity.ProjectList
-	if err = dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).Scan(&project); err != nil {
+	// get Group name
+	var group entity.SubGroup
+	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).Scan(&group); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("数据库查询ProjectList错误")
+		return nil, errors.New("数据库查询SubGroup错误")
 	}
 	for i := range req.DeviceIdList {
-		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
+		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"group_name": group.SubGroupName, "group_id": group.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("更新 DeviceList DB assigned_items 和 assigned_items_id 错误")
+			return nil, errors.New("更新 DeviceList DB group_name 和 group_id 错误")
 		}
 	}
 	return
