@@ -8,6 +8,7 @@ import (
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
+	"sms_backend/utility"
 	"strconv"
 	"time"
 )
@@ -66,7 +67,7 @@ func (s *sMainControllerDeviceManagement) GetDeviceList(ctx context.Context, req
 			SentStatus:    raw[i].SentStatus,
 			DeviceID:      raw[i].DeviceId,
 			Number:        raw[i].Number,
-			ActiveDays:    Second2Day(currentTime - raw[i].ActiveTime.Second()),
+			ActiveDays:    utility.Second2Day(currentTime - raw[i].ActiveTime.Second()),
 			OwnerAccount:  raw[i].OwnerAccount,
 			AssignedItems: raw[i].AssignedItems,
 			QuantitySent:  strconv.Itoa(raw[i].QuantitySent),
@@ -75,11 +76,6 @@ func (s *sMainControllerDeviceManagement) GetDeviceList(ctx context.Context, req
 	}
 
 	return
-}
-
-func Second2Day(s int) int {
-	d := 60 * 60 * 24
-	return s / d
 }
 
 func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (res *sms.AllocateDevice2ProjectRes, err error) {

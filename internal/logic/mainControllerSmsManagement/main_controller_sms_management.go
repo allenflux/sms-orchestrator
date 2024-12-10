@@ -62,5 +62,58 @@ func (s *sMainControllerSmsManagement) GetTaskList(ctx context.Context, req *sms
 }
 
 func (s *sMainControllerSmsManagement) GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error) {
+	sand := dao.SmsMissionRecord.Ctx(ctx).Page(req.PageNum, req.PageSize)
+	if req.ProjectID != 0 {
+		sand = sand.Where("project_id = ?", req.ProjectID)
+	}
+
+	if req.SmsStatus != 0 {
+		sand = sand.Where("sms_status = ?", req.SmsStatus)
+	}
+
+	if len(req.TaskName) != 0 {
+		sand = sand.Where("task_name like ?", "%"+req.TaskName+"%")
+	}
+
+	if len(req.TargetPhoneNumber) != 0 {
+		sand = sand.Where("target_phone_number like ?", "%"+req.TargetPhoneNumber+"%")
+	}
+
+	if len(req.DeviceNumber) != 0 {
+		sand = sand.Where("device_number like ?", "%"+req.DeviceNumber+"%")
+	}
+
+	if len(req.SentDateRange) > 0 {
+		sand = sand.Where("start_time >= ? AND start_time <= ?", req.SentDateRange[0], req.SentDateRange[1])
+	}
+
+	if len(req.CreateDateRange) > 0 {
+		sand = sand.Where("created_at >= ? AND created_at <= ?", req.CreateDateRange[0], req.CreateDateRange[1])
+	}
+
+	var data []entity.SmsMissionRecord
+	var totalCount int
+	if err = sand.ScanAndCount(&data, &totalCount, false); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询DB SmsMissionRecord 错误")
+	}
+	res.Total = totalCount
+	res.Data = make([]sms.TaskRecordResData, len(data))
+	for i := range data {
+		res.Data[i] = sms.TaskRecordResData{
+			ID:                data[i].Id,
+			TaskName:          data[i].TaskName,
+			SubTaskID:         data[i].SubTaskId,
+			TargetPhoneNumber: data[i].TargetPhoneNumber,
+			DeviceNumber:      data[i].DeviceNumber,
+			SmsTopic:          data[i].SmsTopic,
+			SmsContent:        data[i].SmsContent,
+			SmsStatus:         data[i].SmsStatus,
+			AssociatedAccount: data[i].AssociatedAccount,
+			ProjectName:       data[i].ProjectName,
+			StartTime:         data[i].StartTime.String(),
+			CreateTime:        data[i].CreatedAt.String(),
+		}
+	}
 	return
 }
