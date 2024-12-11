@@ -1,6 +1,9 @@
 package main
 
 import (
+	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/glog"
+	"sms_backend/internal/dao"
 	_ "sms_backend/internal/packed"
 
 	_ "sms_backend/internal/logic"
@@ -12,6 +15,11 @@ import (
 	"sms_backend/internal/cmd"
 )
 
+func init() {
+	g.Log().SetFlags(glog.F_TIME_STD | glog.F_FILE_LONG)
+	dao.Init()
+}
 func main() {
+
 	cmd.Main.Run(gctx.GetInitCtx())
 }

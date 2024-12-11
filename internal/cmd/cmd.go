@@ -23,7 +23,8 @@ var (
 		Func: func(ctx context.Context, parser *gcmd.Parser) (err error) {
 			gmode.SetProduct()
 			InitFun(ctx)
-			apiServer := g.Server()
+			apiServer := g.Server("api")
+			apiServer.SetLogger(g.Log())
 			//s.Group("/", func(group *ghttp.RouterGroup) {
 			//	group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
 			//	group.Bind(
