@@ -31,3 +31,9 @@ type ControllerCareer struct{}
 func NewCareer() v1.IV1Career {
 	return &ControllerCareer{}
 }
+
+type ControllerUser struct{}
+
+func NewUser() v1.IV1User {
+	return &ControllerUser{}
+}

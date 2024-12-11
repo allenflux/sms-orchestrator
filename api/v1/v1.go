@@ -11,6 +11,7 @@ import (
 	"sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/api/v1/system"
+	"sms_backend/api/v1/user"
 )
 
 type IV1Career interface {
@@ -120,4 +121,9 @@ type IV1System interface {
 	UserGetByIds(ctx context.Context, req *system.UserGetByIdsReq) (res *system.UserGetByIdsRes, err error)
 	SysUserOnlineSearch(ctx context.Context, req *system.SysUserOnlineSearchReq) (res *system.SysUserOnlineSearchRes, err error)
 	SysUserOnlineForceLogout(ctx context.Context, req *system.SysUserOnlineForceLogoutReq) (res *system.SysUserOnlineForceLogoutRes, err error)
+}
+
+type IV1User interface {
+	Login(ctx context.Context, req *user.LoginReq) (res *user.LoginRes, err error)
+	SubRegister(ctx context.Context, req *user.SubRegisterReq) (res *user.SubRegisterRes, err error)
 }

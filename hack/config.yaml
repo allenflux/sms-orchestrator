@@ -1,5 +1,8 @@
 gfcli:
   gen:
+    enums:
+      src: "api"
+      path: "internal/boot/boot_enums.go"
     dao:
       - link:            "mysql:root:123456@tcp(192.168.1.14:3306)/sms"
         jsonCase:        "Snake"
