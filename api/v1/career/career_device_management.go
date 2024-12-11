@@ -29,7 +29,17 @@ type FetchTaskReq struct {
 	g.Meta       `path:"/device/task" tags:"Device使用的API" method:"post" dc:"根据设备号获取设备任务"`
 	DeviceNumber string `json:"device_number" dc:"设备号" v:"required"`
 }
-type FetchTaskRes struct{}
+
+type FetchTaskResData struct {
+	TargetPhoneNumber string `json:"target_phone_number"`
+	Content           string `json:"content"`
+}
+type FetchTaskRes struct {
+	Interval int                `json:"interval"`
+	TaskId   string             `json:"task_id"`
+	Data     []FetchTaskResData `json:"data"`
+	StartAt  *gtime.Time        `json:"start_at"`
+}
 
 // Report Task Results
 
@@ -44,11 +54,11 @@ type ReportTaskResultRes struct{}
 // Report Receive Content
 
 type ReportReceiveContentReq struct {
-	g.Meta            `path:"/device/task/content" tags:"Device使用的API" method:"post" dc:"根据设备号上报接收的内容"`
-	DeviceNumber      string `json:"device_number" dc:"设备号" v:"required"`
-	SmsContent        string `json:"sms_content" v:"required"`
-	SmsTopic          string `json:"sms_topic" v:"required"`
-	ReceiveTime       string `json:"receive_time" v:"required" dc:"接收时间戳"`
-	TargetPhoneNumber string `json:"target_phone_number" v:"required" dc:"接收的手机号"`
+	g.Meta       `path:"/device/task/content" tags:"Device使用的API" method:"post" dc:"根据设备号上报接收的内容"`
+	TaskId       string `json:"task_id" v:"required"`
+	DeviceNumber string `json:"device_number" dc:"设备号" v:"required"`
+	SmsContent   string `json:"sms_content" v:"required"`
+	SmsTopic     string `json:"sms_topic" v:"required"`
+	ReceiveTime  string `json:"receive_time" v:"required" dc:"接收时间戳"`
 }
 type ReportReceiveContentRes struct{}

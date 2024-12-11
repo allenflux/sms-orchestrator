@@ -40,3 +40,7 @@ func (s *sCareerDeviceManagement) DeviceRegister(ctx context.Context, req *caree
 	}
 	return
 }
+
+func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error) {
+	return nil, err
+}

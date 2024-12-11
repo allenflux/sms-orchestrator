@@ -23,7 +23,7 @@ type sMainControllerProjectManagement struct{}
 // Project List
 
 func (s *sMainControllerProjectManagement) ProjectList(ctx context.Context, req *sms.ProjectListReq) (res *sms.ProjectListRes, err error) {
-	dbTemper := dao.CardLevel.Ctx(ctx).Page(req.PageNum, req.PageSize).Order("id desc")
+	dbTemper := dao.ProjectList.Ctx(ctx).Page(req.PageNum, req.PageSize).Order("id desc")
 	if req.KeyWordSearch != "" {
 		dbTemper = dbTemper.Where("name like ?", "%"+req.KeyWordSearch+"%")
 	}
