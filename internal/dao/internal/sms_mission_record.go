@@ -20,40 +20,42 @@ type SmsMissionRecordDao struct {
 
 // SmsMissionRecordColumns defines and stores column names for table sms_mission_record.
 type SmsMissionRecordColumns struct {
-	Id                string //
-	TaskName          string // 任务名称
-	SubTaskId         string // 子任务id
-	TargetPhoneNumber string // 目标手机号
-	DeviceNumber      string // 执行设备号
-	SmsTopic          string // 短信主题
-	SmsContent        string // 短信内容
-	SmsStatus         string // 短信发送状态，1-失败 2-成功
-	AssociatedAccount string // 所属子账号
-	ProjectName       string // 所属项目名称
-	ProjectId         string // 所属项目id
-	StartTime         string // 开始时间
-	CreatedAt         string // 创建时间
-	UpdateAt          string // 修改时间
-	DeleteAt          string // 删除时间
+	Id                  string //
+	TaskName            string // 任务名称
+	SubTaskId           string // 子任务id
+	TargetPhoneNumber   string // 目标手机号
+	DeviceNumber        string // 执行设备号
+	SmsTopic            string // 短信主题
+	SmsContent          string // 短信内容
+	SmsStatus           string // 短信发送状态，1-失败 2-成功
+	AssociatedAccount   string // 所属子账号
+	ProjectName         string // 所属项目名称
+	ProjectId           string // 所属项目id
+	StartTime           string // 开始时间
+	CreatedAt           string // 创建时间
+	UpdateAt            string // 修改时间
+	DeleteAt            string // 删除时间
+	AssociatedAccountId string // 子账户id
 }
 
 // smsMissionRecordColumns holds the columns for table sms_mission_record.
 var smsMissionRecordColumns = SmsMissionRecordColumns{
-	Id:                "id",
-	TaskName:          "task_name",
-	SubTaskId:         "sub_task_id",
-	TargetPhoneNumber: "target_phone_number",
-	DeviceNumber:      "device_number",
-	SmsTopic:          "sms_topic",
-	SmsContent:        "sms_content",
-	SmsStatus:         "sms_status",
-	AssociatedAccount: "associated_account",
-	ProjectName:       "project_name",
-	ProjectId:         "project_id",
-	StartTime:         "start_time",
-	CreatedAt:         "created_at",
-	UpdateAt:          "update_at",
-	DeleteAt:          "delete_at",
+	Id:                  "id",
+	TaskName:            "task_name",
+	SubTaskId:           "sub_task_id",
+	TargetPhoneNumber:   "target_phone_number",
+	DeviceNumber:        "device_number",
+	SmsTopic:            "sms_topic",
+	SmsContent:          "sms_content",
+	SmsStatus:           "sms_status",
+	AssociatedAccount:   "associated_account",
+	ProjectName:         "project_name",
+	ProjectId:           "project_id",
+	StartTime:           "start_time",
+	CreatedAt:           "created_at",
+	UpdateAt:            "update_at",
+	DeleteAt:            "delete_at",
+	AssociatedAccountId: "associated_account_id",
 }
 
 // NewSmsMissionRecordDao creates and returns a new DAO object for table data access.
