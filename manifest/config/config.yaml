@@ -96,9 +96,15 @@ oss:
   secret_id : "AKIDsfGieQKBqHj7WqEZ8c0Rp5EE80xpY8Wg"
   secret_key : "BE7DHOPFKYefkjWTH2b4NTO6d0DG8oJb"
 
+# speedpay配置
+speedpay:
+  app_id: "apptest1815392869523914752"
+  app_secret: "1843b1749117c207f32dcc496357a9e5a2beccd7"
+  referrer: "spac41zts"
+  env: "dev"
 
-sms:
-  url: "https://a2.pppkf.cc"
+upay:
+  url: "https://a1.pppkf.cc"
 
 #短信验证码配置
 MobileCodeConf:
