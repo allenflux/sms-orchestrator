@@ -27,4 +27,5 @@ type SmsMissionReport struct {
 	DeleteAt            *gtime.Time `json:"delete_at"             orm:"delete_at"             description:"删除时间"`                         // 删除时间
 	ProjectName         string      `json:"project_name"          orm:"project_name"          description:"项目名称"`                         // 项目名称
 	AssociatedAccountId int         `json:"associated_account_id" orm:"associated_account_id" description:"所属子账号id"`                      // 所属子账号id
+	GroupId             int         `json:"group_id"              orm:"group_id"              description:"分组id"`                         // 分组id
 }

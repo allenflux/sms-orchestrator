@@ -37,6 +37,7 @@ type SmsMissionReportColumns struct {
 	DeleteAt            string // 删除时间
 	ProjectName         string // 项目名称
 	AssociatedAccountId string // 所属子账号id
+	GroupId             string // 分组id
 }
 
 // smsMissionReportColumns holds the columns for table sms_mission_report.
@@ -58,6 +59,7 @@ var smsMissionReportColumns = SmsMissionReportColumns{
 	DeleteAt:            "delete_at",
 	ProjectName:         "project_name",
 	AssociatedAccountId: "associated_account_id",
+	GroupId:             "group_id",
 }
 
 // NewSmsMissionReportDao creates and returns a new DAO object for table data access.

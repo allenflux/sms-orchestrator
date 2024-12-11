@@ -29,4 +29,5 @@ type SmsMissionReport struct {
 	DeleteAt            *gtime.Time // 删除时间
 	ProjectName         interface{} // 项目名称
 	AssociatedAccountId interface{} // 所属子账号id
+	GroupId             interface{} // 分组id
 }

@@ -12,6 +12,7 @@ import (
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
+	"strconv"
 	"sync"
 )
 
@@ -55,7 +56,7 @@ type FileData struct {
 }
 
 func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error) {
-	// get Group id
+	// todo 限制下device获取任务的次数 每太设备最多可以获取1条任务 上一条任务如果没有提交发送报告则不能再次获取
 	var device entity.DeviceList
 	if err = dao.DeviceList.Ctx(ctx).Where("device_number = ?", req.DeviceNumber).Scan(&device); err != nil {
 		g.Log().Error(ctx, err)
@@ -92,6 +93,16 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		return nil, errors.New("文件解析json错误")
 	}
 
+	i := len(payload.DeviceNumber)
+	res = &career.FetchTaskRes{
+		TargetPhoneNumber: payload.TargetPhoneNumber[i],
+		Content:           payload.Content[i],
+		DeviceNumber:      req.DeviceNumber,
+		Interval:          job.IntervalTime,
+		TaskId:            job.Id,
+		StartAt:           job.StartTime,
+	}
+
 	if len(payload.Content) <= len(payload.DeviceNumber) {
 		return nil, errors.New("文件已经被执行完 无任务可以返回")
 	}
@@ -111,5 +122,35 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		return nil, errors.New("文件写入错误")
 	}
 
+	return
+}
+
+func (s *sCareerDeviceManagement) ReportTaskResult(ctx context.Context, req *career.ReportTaskResultReq) (res *career.ReportTaskResultRes, err error) {
+	// todo 更新device list中 device 的状态
+	var mission entity.SmsMissionReport
+	// Get TaskName by task ID
+	if err = dao.SmsMissionReport.Ctx(ctx).Where("id = ?", req.TaskId).Scan(&mission); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, err
+	}
+
+	data := entity.SmsMissionRecord{
+		TaskName:          mission.TaskName,
+		SubTaskId:         req.TaskId,
+		TargetPhoneNumber: req.TargetPhoneNumber,
+		DeviceNumber:      req.DeviceNumber,
+		SmsTopic:          "短信无topic 有只有个文件名比较合理",
+		SmsContent:        req.Content,
+		SmsStatus:         strconv.Itoa(req.SendStatus),
+		AssociatedAccount: mission.AssociatedAccount,
+		//AssociatedAccountId: mission.AssociatedAccountId,
+		ProjectName: mission.ProjectName,
+		ProjectId:   mission.ProjectId,
+	}
+
+	if _, err = dao.SmsMissionRecord.Ctx(ctx).Data(data).Insert(); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, err
+	}
 	return
 }

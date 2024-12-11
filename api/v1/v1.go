@@ -26,7 +26,6 @@ type IV1AllUser interface {
 
 type IV1Career interface {
 	Register(ctx context.Context, req *career.RegisterReq) (res *career.RegisterRes, err error)
-	ReportInfo(ctx context.Context, req *career.ReportInfoReq) (res *career.ReportInfoRes, err error)
 	FetchTask(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error)
 	ReportTaskResult(ctx context.Context, req *career.ReportTaskResultReq) (res *career.ReportTaskResultRes, err error)
 	ReportReceiveContent(ctx context.Context, req *career.ReportReceiveContentReq) (res *career.ReportReceiveContentRes, err error)
