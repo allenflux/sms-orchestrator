@@ -27,7 +27,6 @@ type UserColumns struct {
 	Status    string // 账号状态，1-停用 2-启用
 	RoleId    string // 角色权限id
 	SystemId  string // 所属后台id
-	Note      string // 备注
 	CreatedAt string // 创建时间
 	UpdateAt  string // 更新时间
 	DeleteAt  string // 删除时间
@@ -42,7 +41,6 @@ var userColumns = UserColumns{
 	Status:    "status",
 	RoleId:    "role_id",
 	SystemId:  "system_id",
-	Note:      "note",
 	CreatedAt: "created_at",
 	UpdateAt:  "update_at",
 	DeleteAt:  "delete_at",

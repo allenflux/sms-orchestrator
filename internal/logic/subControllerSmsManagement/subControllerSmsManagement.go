@@ -2,8 +2,10 @@ package subControllerSmsManagement
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"github.com/gogf/gf/v2/frame/g"
+	"io/ioutil"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
@@ -64,11 +66,34 @@ func (s *sSubControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.
 // Create Task
 const TaskFilePath = "./resource/file"
 
+type FileData struct {
+	TargetPhoneNumber []string `json:"target_phone_number"`
+	Content           []string `json:"content"`
+}
+
 func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskListRes, err error) {
-	// todo 文件内容验证
+
 	filename, err := req.File.Save(TaskFilePath, true)
 	if err != nil {
 		return nil, errors.New("文件存储错误")
+	}
+
+	content, err := ioutil.ReadFile(TaskFilePath + "/" + filename)
+	if err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("文件打开错误")
+	}
+
+	// Now let's unmarshall the data into `payload`
+	var payload FileData
+	err = json.Unmarshal(content, &payload)
+	if err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("文件解析json错误")
+	}
+
+	if len(payload.Content) == 0 || len(payload.TargetPhoneNumber) == 0 || len(payload.Content) != len(payload.TargetPhoneNumber) {
+		return nil, errors.New("文件格式错误")
 	}
 
 	var project entity.ProjectList
