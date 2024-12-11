@@ -18,28 +18,31 @@ type RegisterRes struct{}
 // Reporting Device Information
 
 type ReportInfoReq struct {
-	g.Meta       `path:"/device/info" tags:"Device使用的API" method:"post" dc:"根据设备号获取设备信息"`
+	g.Meta       `path:"/device/info" tags:"Device使用的API" method:"post" dc:"根据设备号上报设备信息"`
 	DeviceNumber string `json:"device_number" dc:"设备号" v:"required"`
+	Status       string `json:"status" dc:"设备状态" v:"required"`
 }
 type ReportInfoRes struct{}
 
 // Fetch Task
 
 type FetchTaskReq struct {
-	g.Meta       `path:"/device/task" tags:"Device使用的API" method:"post" dc:"根据设备号获取设备任务"`
+	g.Meta       `path:"/device/task" tags:"Device使用的API" method:"post" dc:"根据设备号获取设备任务，每次调用只取回一个任务"`
 	DeviceNumber string `json:"device_number" dc:"设备号" v:"required"`
 }
 
-type FetchTaskResData struct {
-	TargetPhoneNumber string `json:"target_phone_number"`
-	Content           string `json:"content"`
-}
 type FetchTaskRes struct {
-	Interval int                `json:"interval"`
-	TaskId   string             `json:"task_id"`
-	Data     []FetchTaskResData `json:"data"`
-	StartAt  *gtime.Time        `json:"start_at"`
+	TargetPhoneNumber string      `json:"target_phone_number"`
+	Content           string      `json:"content"`
+	DeviceNumber      string      `json:"device_number" dc:"有时为空 若不为空则需要使用特定设备发送此条信息"`
+	Interval          int         `json:"interval"`
+	TaskId            string      `json:"task_id"`
+	StartAt           *gtime.Time `json:"start_at"`
 }
+
+//type FetchTaskByGroupRes struct {
+//	Data []FetchTaskResData `json:"data"`
+//}
 
 // Report Task Results
 

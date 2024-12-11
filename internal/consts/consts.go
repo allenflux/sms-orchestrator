@@ -16,3 +16,5 @@ const (
 )
 
 const HKDToRMB = 0.93
+
+const TaskFilePath = "./resource/file"

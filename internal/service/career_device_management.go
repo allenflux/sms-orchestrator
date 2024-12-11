@@ -13,6 +13,7 @@ import (
 type (
 	ICareerDeviceManagement interface {
 		DeviceRegister(ctx context.Context, req *career.RegisterReq) (res *career.RegisterRes, err error)
+		FetchTasks(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error)
 	}
 )
 
