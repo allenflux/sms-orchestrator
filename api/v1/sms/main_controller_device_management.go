@@ -90,7 +90,7 @@ type AllocateDevice2ProjectRes struct {
 }
 
 type AllocateAccount2ProjectReq struct {
-	g.Meta    `path:"/account/project" tags:"设备列表" method:"post" dc:"分配设备给项目" `
+	g.Meta    `path:"/account/project" tags:"设备列表" method:"post" dc:"分配子账号给项目" `
 	AccountId string `json:"account_id" v:"required" dc:"子账号id"`
 	ProjectId int    `json:"project_id" v:"required"`
 }

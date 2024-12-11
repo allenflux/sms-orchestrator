@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"io/ioutil"
 	"sms_backend/api/v1/sms"
+	"sms_backend/internal/consts"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
@@ -64,7 +65,6 @@ func (s *sSubControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.
 }
 
 // Create Task
-const TaskFilePath = "./resource/file"
 
 type FileData struct {
 	TargetPhoneNumber []string `json:"target_phone_number"`
@@ -73,12 +73,12 @@ type FileData struct {
 
 func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskListRes, err error) {
 
-	filename, err := req.File.Save(TaskFilePath, true)
+	filename, err := req.File.Save(consts.TaskFilePath, true)
 	if err != nil {
 		return nil, errors.New("文件存储错误")
 	}
 
-	content, err := ioutil.ReadFile(TaskFilePath + "/" + filename)
+	content, err := ioutil.ReadFile(consts.TaskFilePath + "/" + filename)
 	if err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("文件打开错误")
@@ -126,7 +126,7 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 // Download File
 func (s *sSubControllerSmsManagement) TaskFileDownload(ctx context.Context, req *sms.TaskFileDownloadReq) (res *sms.TaskFileDownloadRes, err error) {
 	g.Log().Infof(ctx, "FileDownloadReq: %v", req)
-	res.R.ServeFileDownload(TaskFilePath, req.FileName)
+	res.R.ServeFileDownload(consts.TaskFilePath, req.FileName)
 	return
 }
 

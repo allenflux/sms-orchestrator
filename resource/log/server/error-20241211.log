@@ -1,0 +1,47 @@
+2024-12-11 10:00:57.856 {70726edf2e0010182fc31e1e06279e20} 200 "GET http 127.0.0.1:8822 //api/v1/sms/sub/task/list HTTP/1.1" 2218.708, 127.0.0.1, "", "curl/8.6.0", 51, "Validation Failed", ""
+Stack:
+The SubUserID field is required
+2024-12-11 10:18:40.375 {185a2c30260110188a06d17867c89d0f} 500 "GET http 192.168.1.14:8822 /api/v1/sms/task/list HTTP/1.1" 308780.584, 192.168.1.10, "", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", 68, "Internal Panic", ""
+Stack:
+1. exception recovered
+   1).  sms_backend/internal/logic/mainControllerSmsManagement.(*sMainControllerSmsManagement).GetTaskList
+        /Users/baizhe/Public/code/sms_backend/internal/logic/mainControllerSmsManagement/main_controller_sms_management.go:41
+   2).  sms_backend/internal/controller/v1.(*ControllerSms).TaskList
+        /Users/baizhe/Public/code/sms_backend/internal/controller/v1/v1_sms_task_list.go:11
+   3).  sms_backend/internal/cmd.MiddlewareCORS
+        /Users/baizhe/Public/code/sms_backend/internal/cmd/cmd.go:15
+2. runtime error: invalid memory address or nil pointer dereference
+
+2024-12-11 10:32:06.465 {501527dbe101101887a6a4158c61a794} 200 "GET http 192.168.1.14:8822 /api/v1/sms/project/list HTTP/1.1" 371889.166, 192.168.1.10, "", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", 52, "Database Operation Error", ""
+Stack:
+1. SELECT COUNT(1) FROM `card_level`
+   1).  sms_backend/internal/logic/mainControllerProjectManagement.(*sMainControllerProjectManagement).ProjectList
+        /Users/baizhe/Public/code/sms_backend/internal/logic/mainControllerProjectManagement/main_controller_project_managment.go:32
+   2).  sms_backend/internal/controller/v1.(*ControllerSms).ProjectList
+        /Users/baizhe/Public/code/sms_backend/internal/controller/v1/v1_sms_project_list.go:11
+   3).  sms_backend/internal/cmd.MiddlewareCORS
+        /Users/baizhe/Public/code/sms_backend/internal/cmd/cmd.go:15
+2. Error 1146 (42S02): Table 'sms.card_level' doesn't exist
+
+2024-12-11 10:32:42.909 {90502658ea01101888a6a415e66c3869} 200 "GET http 192.168.1.14:8822 /api/v1/sms/project/list HTTP/1.1" 358625.417, 192.168.1.10, "", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", 52, "Database Operation Error", ""
+Stack:
+1. SELECT COUNT(1) FROM `card_level`
+   1).  sms_backend/internal/logic/mainControllerProjectManagement.(*sMainControllerProjectManagement).ProjectList
+        /Users/baizhe/Public/code/sms_backend/internal/logic/mainControllerProjectManagement/main_controller_project_managment.go:32
+   2).  sms_backend/internal/controller/v1.(*ControllerSms).ProjectList
+        /Users/baizhe/Public/code/sms_backend/internal/controller/v1/v1_sms_project_list.go:11
+   3).  sms_backend/internal/cmd.MiddlewareCORS
+        /Users/baizhe/Public/code/sms_backend/internal/cmd/cmd.go:15
+2. Error 1146 (42S02): Table 'sms.card_level' doesn't exist
+
+2024-12-11 10:58:59.917 {0884418559031018a5a6a415dbb1ccc6} 200 "GET http 192.168.1.14:8822 /api/v1/sms/project/list HTTP/1.1" 356845.375, 192.168.1.10, "", "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36", 52, "Database Operation Error", ""
+Stack:
+1. SELECT COUNT(1) FROM `card_level`
+   1).  sms_backend/internal/logic/mainControllerProjectManagement.(*sMainControllerProjectManagement).ProjectList
+        /Users/baizhe/Public/code/sms_backend/internal/logic/mainControllerProjectManagement/main_controller_project_managment.go:32
+   2).  sms_backend/internal/controller/v1.(*ControllerSms).ProjectList
+        /Users/baizhe/Public/code/sms_backend/internal/controller/v1/v1_sms_project_list.go:11
+   3).  sms_backend/internal/cmd.MiddlewareCORS
+        /Users/baizhe/Public/code/sms_backend/internal/cmd/cmd.go:15
+2. Error 1146 (42S02): Table 'sms.card_level' doesn't exist
+
