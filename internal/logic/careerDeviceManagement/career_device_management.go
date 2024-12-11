@@ -42,5 +42,5 @@ func (s *sCareerDeviceManagement) DeviceRegister(ctx context.Context, req *caree
 }
 
 func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error) {
-
+	return nil, err
 }
