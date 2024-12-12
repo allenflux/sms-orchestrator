@@ -37,3 +37,27 @@ type ControllerUser struct{}
 func NewUser() v1.IV1User {
 	return &ControllerUser{}
 }
+
+type ControllerSubUser struct{}
+
+func NewSubUser() v1.IV1SubUser {
+	return &ControllerSubUser{}
+}
+
+type ControllerAllUser struct{}
+
+func NewAllUser() v1.IV1AllUser {
+	return &ControllerAllUser{}
+}
+
+type ControllerLog struct{}
+
+func NewLog() v1.IV1Log {
+	return &ControllerLog{}
+}
+
+type ControllerRole struct{}
+
+func NewRole() v1.IV1Role {
+	return &ControllerRole{}
+}

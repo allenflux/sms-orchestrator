@@ -6,9 +6,9 @@ import (
 	"github.com/gogf/gf/v2/errors/gcode"
 	"github.com/gogf/gf/v2/errors/gerror"
 
-	"sms_backend/api/v1/user"
+	"sms_backend/api/v1/role"
 )
 
-func (c *ControllerUser) SubRegister(ctx context.Context, req *user.SubRegisterReq) (res *user.SubRegisterRes, err error) {
+func (c *ControllerRole) Updated(ctx context.Context, req *role.UpdatedReq) (res *role.UpdatedRes, err error) {
 	return nil, gerror.NewCode(gcode.CodeNotImplemented)
 }

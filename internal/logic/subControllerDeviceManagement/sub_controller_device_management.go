@@ -85,7 +85,7 @@ func (s *sSubControllerDeviceManagement) GroupCreate(ctx context.Context, req *s
 	} else if count > 0 {
 		return nil, errors.New("此名称以存在 请更换分组名称")
 	}
-	if _, err = dao.SubGroup.Ctx(ctx).Data(g.Map{"sub_user": req.SubUserID, "sub_group_name": req.GroupName}).Insert(); err != nil {
+	if _, err = dao.SubGroup.Ctx(ctx).Data(g.Map{"subUser": req.SubUserID, "sub_group_name": req.GroupName}).Insert(); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("分组创建失败")
 	}

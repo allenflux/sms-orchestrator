@@ -49,6 +49,40 @@ var (
 				)
 			})
 
+			apiServer.Group("/api/v1/user", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Bind(
+					v1.NewUser(),
+				)
+			})
+
+			apiServer.Group("/api/v1/sub-user", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Bind(
+					v1.NewSubUser(),
+				)
+			})
+
+			apiServer.Group("/api/v1/all-user", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Bind(
+					v1.NewAllUser(),
+				)
+			})
+
+			apiServer.Group("/api/v1/role", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Bind(
+					v1.NewRole(),
+				)
+			})
+
+			apiServer.Group("/api/v1/log", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Bind(
+					v1.NewLog(),
+				)
+			})
 			apiServer.Run()
 			return nil
 		},

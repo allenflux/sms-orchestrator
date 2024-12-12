@@ -7,12 +7,22 @@ package v1
 import (
 	"context"
 
+	"sms_backend/api/v1/allUser"
 	"sms_backend/api/v1/career"
 	"sms_backend/api/v1/common"
+	"sms_backend/api/v1/log"
+	"sms_backend/api/v1/role"
 	"sms_backend/api/v1/sms"
+	"sms_backend/api/v1/subUser"
 	"sms_backend/api/v1/system"
 	"sms_backend/api/v1/user"
 )
+
+type IV1AllUser interface {
+	Login(ctx context.Context, req *allUser.LoginReq) (res *allUser.LoginRes, err error)
+	Logout(ctx context.Context, req *allUser.LogoutReq) (res *allUser.LogoutRes, err error)
+	ChangePassword(ctx context.Context, req *allUser.ChangePasswordReq) (res *allUser.ChangePasswordRes, err error)
+}
 
 type IV1Career interface {
 	Register(ctx context.Context, req *career.RegisterReq) (res *career.RegisterRes, err error)
@@ -25,6 +35,17 @@ type IV1Career interface {
 type IV1Common interface {
 	Captcha(ctx context.Context, req *common.CaptchaReq) (res *common.CaptchaRes, err error)
 	FileUpload(ctx context.Context, req *common.FileUploadReq) (res *common.FileUploadRes, err error)
+}
+
+type IV1Log interface {
+	List(ctx context.Context, req *log.ListReq) (res *log.ListRes, err error)
+}
+
+type IV1Role interface {
+	List(ctx context.Context, req *role.ListReq) (res *role.ListRes, err error)
+	Created(ctx context.Context, req *role.CreatedReq) (res *role.CreatedRes, err error)
+	Updated(ctx context.Context, req *role.UpdatedReq) (res *role.UpdatedRes, err error)
+	Deleted(ctx context.Context, req *role.DeletedReq) (res *role.DeletedRes, err error)
 }
 
 type IV1Sms interface {
@@ -50,6 +71,14 @@ type IV1Sms interface {
 	TaskFileDownload(ctx context.Context, req *sms.TaskFileDownloadReq) (res *sms.TaskFileDownloadRes, err error)
 	SubTaskDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (res *sms.SubTaskDeleteRes, err error)
 	SubTaskRecord(ctx context.Context, req *sms.SubTaskRecordReq) (res *sms.SubTaskRecordRes, err error)
+}
+
+type IV1SubUser interface {
+	SubRegister(ctx context.Context, req *subUser.SubRegisterReq) (res *subUser.SubRegisterRes, err error)
+	SubGetList(ctx context.Context, req *subUser.SubGetListReq) (res *subUser.SubGetListRes, err error)
+	SubUpdate(ctx context.Context, req *subUser.SubUpdateReq) (res *subUser.SubUpdateRes, err error)
+	SubChangeStatus(ctx context.Context, req *subUser.SubChangeStatusReq) (res *subUser.SubChangeStatusRes, err error)
+	SubDelete(ctx context.Context, req *subUser.SubDeleteReq) (res *subUser.SubDeleteRes, err error)
 }
 
 type IV1System interface {
@@ -124,6 +153,9 @@ type IV1System interface {
 }
 
 type IV1User interface {
-	Login(ctx context.Context, req *user.LoginReq) (res *user.LoginRes, err error)
-	SubRegister(ctx context.Context, req *user.SubRegisterReq) (res *user.SubRegisterRes, err error)
+	Register(ctx context.Context, req *user.RegisterReq) (res *user.RegisterRes, err error)
+	GetList(ctx context.Context, req *user.GetListReq) (res *user.GetListRes, err error)
+	Update(ctx context.Context, req *user.UpdateReq) (res *user.UpdateRes, err error)
+	ChangeStatus(ctx context.Context, req *user.ChangeStatusReq) (res *user.ChangeStatusRes, err error)
+	Delete(ctx context.Context, req *user.DeleteReq) (res *user.DeleteRes, err error)
 }
