@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/glog"
+	_ "sms_backend/internal/boot"
 	"sms_backend/internal/dao"
-	_ "sms_backend/internal/packed"
-
 	_ "sms_backend/internal/logic"
+	_ "sms_backend/internal/packed"
 
 	_ "github.com/gogf/gf/contrib/drivers/mysql/v2"
 
