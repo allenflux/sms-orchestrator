@@ -51,7 +51,9 @@ type SubTaskCreateReq struct {
 	TimingStartTime *gtime.Time       `json:"timing_start_time"  dc:"定时启动时间"`
 }
 
-type SubTaskCreateRes struct{}
+type SubTaskCreateRes struct {
+	ID int64 `json:"id"`
+}
 
 // Task File Download
 type TaskFileDownloadReq struct {

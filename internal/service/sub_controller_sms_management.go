@@ -13,7 +13,7 @@ import (
 type (
 	ISubControllerSmsManagement interface {
 		GetTaskList(ctx context.Context, req *sms.SubTaskListReq) (res *sms.SubTaskListRes, err error)
-		TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskListRes, err error)
+		TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskCreateRes, err error)
 		// Download File
 		TaskFileDownload(ctx context.Context, req *sms.TaskFileDownloadReq) (res *sms.TaskFileDownloadRes, err error)
 		TaskReportDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (res *sms.SubTaskDeleteRes, err error)

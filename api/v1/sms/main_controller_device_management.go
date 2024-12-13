@@ -33,6 +33,7 @@ type ProjectCreateReq struct {
 }
 
 type ProjectCreateRes struct {
+	ID int64 `json:"id"`
 }
 
 type ProjectUpdateReq struct {

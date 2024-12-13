@@ -22,7 +22,7 @@ type PermissionDao struct {
 type PermissionColumns struct {
 	Id        string //
 	Name      string // 功能名称
-	CreatedAd string // 创建时间
+	CreatedAt string // 创建时间
 	UpdateAt  string // 修改时间
 	DeleteAt  string // 删除时间
 }
@@ -31,7 +31,7 @@ type PermissionColumns struct {
 var permissionColumns = PermissionColumns{
 	Id:        "id",
 	Name:      "name",
-	CreatedAd: "created_ad",
+	CreatedAt: "created_at",
 	UpdateAt:  "update_at",
 	DeleteAt:  "delete_at",
 }

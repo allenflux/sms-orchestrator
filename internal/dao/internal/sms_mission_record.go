@@ -36,6 +36,7 @@ type SmsMissionRecordColumns struct {
 	UpdateAt            string // 修改时间
 	DeleteAt            string // 删除时间
 	AssociatedAccountId string // 子账户id
+	RowHash             string // 每行内容的hash串 为了防止同样的记录重复提交
 }
 
 // smsMissionRecordColumns holds the columns for table sms_mission_record.
@@ -56,6 +57,7 @@ var smsMissionRecordColumns = SmsMissionRecordColumns{
 	UpdateAt:            "update_at",
 	DeleteAt:            "delete_at",
 	AssociatedAccountId: "associated_account_id",
+	RowHash:             "row_hash",
 }
 
 // NewSmsMissionRecordDao creates and returns a new DAO object for table data access.
