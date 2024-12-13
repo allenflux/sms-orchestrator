@@ -2,9 +2,13 @@ import json
 
 import requests
 from faker import Faker
+
+import url
+
 fake = Faker()
 
-create_group_url = "http://192.168.1.14:8822/api/v1/sms/sub/group"
+# create_group_url = "http://192.168.1.14:8822/api/v1/sms/sub/group"
+create_group_url = url.url_prefix +"sms/sub/group"
 test_sub_user_id = 886
 with open("./project_id_list.json") as f:
     project_id_list = json.load(f)

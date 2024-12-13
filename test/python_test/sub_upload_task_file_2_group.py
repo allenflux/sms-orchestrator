@@ -5,9 +5,11 @@ from faker import Faker
 import requests
 from  requests_toolbelt import MultipartEncoder
 
+import url
 
 faker = Faker()
-sub_upload_task_url = "http://192.168.1.14:8822/api/v1/sms/sub/task"
+# sub_upload_task_url = "http://192.168.1.14:8822/api/v1/sms/sub/task"
+sub_upload_task_url = url.url_prefix +"sms/sub/task"
 
 test_sub_user_id = 886
 

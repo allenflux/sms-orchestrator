@@ -3,7 +3,10 @@ import time
 
 import requests
 
-register_url = "http://192.168.1.14:8822/api/v1/career/device"
+import url
+
+# register_url = "http://192.168.1.14:8822/api/v1/career/device"
+register_url = url.url_prefix + "career/device"
 def register():
     with open("./device_num.json") as f:
         device_num_list = json.load(f)

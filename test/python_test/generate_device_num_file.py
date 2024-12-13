@@ -1,5 +1,8 @@
 import json
 import random
+from faker import Faker
+fake = Faker()
+
 prefix = "python_test_device_"
 
 def generate_device_num(num = 20):
@@ -12,7 +15,7 @@ def generate_device_num(num = 20):
                 pass
             else:
                 filter_num[no] = 1
-                res_list.append(prefix + str(no))
+                res_list.append(prefix +fake.file_name()+ str(no))
                 break
     return res_list
 

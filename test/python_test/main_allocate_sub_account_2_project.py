@@ -2,7 +2,10 @@ import json
 
 import requests
 
-allocate_sub_account_2_project_url = "http://192.168.1.14:8822/api/v1/sms/account/project"
+import url
+
+# allocate_sub_account_2_project_url = "http://192.168.1.14:8822/api/v1/sms/account/project"
+allocate_sub_account_2_project_url = url.url_prefix +"sms/account/project"
 
 def allocate_sub_account_2_project():
     with open("./project_id_list.json") as f:
