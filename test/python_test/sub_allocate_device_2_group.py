@@ -2,7 +2,10 @@ import json
 
 import requests
 
-allocate_device_2_group_url = "http://192.168.1.14:8822/api/v1/sms/sub/device/group"
+import url
+
+# allocate_device_2_group_url = "http://192.168.1.14:8822/api/v1/sms/sub/device/group"
+allocate_device_2_group_url = url.url_prefix +"sms/sub/device/group"
 test_sub_user_id = 886
 
 def allocate_device_2_group():

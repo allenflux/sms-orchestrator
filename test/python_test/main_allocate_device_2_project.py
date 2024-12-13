@@ -2,7 +2,10 @@ import json
 
 import requests
 
-allocate_device_2_project_url = "http://192.168.1.14:8822/api/v1/sms/device/project"
+import url
+
+# allocate_device_2_project_url = "http://192.168.1.14:8822/api/v1/sms/device/project"
+allocate_device_2_project_url = url.url_prefix +"sms/device/project"
 
 def allocate_device_2_project():
     url = allocate_device_2_project_url

@@ -2,7 +2,10 @@ import json
 
 import requests
 
-device_fetch_task_url = "http://192.168.1.14:8822/api/v1/career/device/task"
+import url
+
+# device_fetch_task_url = "http://192.168.1.14:8822/api/v1/career/device/task"
+device_fetch_task_url = register_url = url.url_prefix + "career/device/task"
 with open("./device_num.json") as f:
     device_num_list = json.load(f)
 

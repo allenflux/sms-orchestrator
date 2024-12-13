@@ -3,7 +3,10 @@ import random
 
 import requests
 
-report_task_result_url = "http://192.168.1.14:8822/api/v1/career/device/task/result"
+import url
+
+# report_task_result_url = "http://192.168.1.14:8822/api/v1/career/device/task/result"
+report_task_result_url = url.url_prefix + "career/device/task/result"
 
 
 def report_task_result():
