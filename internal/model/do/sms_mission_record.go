@@ -28,4 +28,5 @@ type SmsMissionRecord struct {
 	UpdateAt            *gtime.Time // 修改时间
 	DeleteAt            *gtime.Time // 删除时间
 	AssociatedAccountId interface{} // 子账户id
+	RowHash             interface{} // 每行内容的hash串 为了防止同样的记录重复提交
 }

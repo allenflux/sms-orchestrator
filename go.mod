@@ -11,6 +11,7 @@ require (
 	github.com/gogf/gf/v2 v2.8.1
 	github.com/gorilla/websocket v1.5.3
 	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
+	github.com/qingwave/mossdb v0.0.0-20230811022036-53619cb447a8
 	github.com/spf13/cast v1.7.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.59
 	github.com/tiger1103/gfast-cache v1.0.8
@@ -35,6 +36,7 @@ require (
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-sql-driver/mysql v1.8.1 // indirect
+	github.com/gofrs/flock v0.8.1 // indirect
 	github.com/gogf/gf/contrib/nosql/redis/v2 v2.7.4 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
@@ -55,6 +57,7 @@ require (
 	github.com/mozillazg/go-httpheader v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/qingwave/gocorex v0.0.0-20230223021023-ff62fa184778 // indirect
 	github.com/redis/go-redis/v9 v9.6.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	go.opencensus.io v0.22.5 // indirect

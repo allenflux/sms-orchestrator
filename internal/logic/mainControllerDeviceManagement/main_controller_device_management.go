@@ -88,6 +88,7 @@ func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Con
 		g.Log().Error(ctx, err)
 		return nil, errors.New("数据库查询ProjectList错误")
 	}
+
 	for i := range req.DeviceIdList {
 		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)

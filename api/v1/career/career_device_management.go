@@ -13,7 +13,9 @@ type RegisterReq struct {
 	PhoneNumber  string      `json:"phone_number" dc:"设备手机号" v:"required"`
 	ActiveTime   *gtime.Time `json:"active_time" dc:"激活时间 时间戳" v:"required"`
 }
-type RegisterRes struct{}
+type RegisterRes struct {
+	ID int64 `json:"id"`
+}
 
 // Reporting Device Information
 
@@ -48,14 +50,17 @@ type FetchTaskRes struct {
 
 type ReportTaskResultReq struct {
 	g.Meta            `path:"/device/task/result" tags:"Device使用的API" method:"post" dc:"根据设备号上报任务执行结果"`
-	DeviceNumber      string `json:"device_number" dc:"设备号" v:"required"`
-	Content           string `json:"content"`
-	SendStatus        int    `json:"send_status" dc:"1-成功 2-失败" v:"required"`
-	Reason            string `json:"reason" dc:"如果不成功告知失败原因" v:"required"`
-	TargetPhoneNumber string `json:"target_phone_number" v:"required"`
-	TaskId            int    `json:"task_id" v:"required"`
+	DeviceNumber      string      `json:"device_number" dc:"设备号" v:"required"`
+	Content           string      `json:"content" v:"required"`
+	SendStatus        int         `json:"send_status" dc:"1-成功 2-失败" v:"required"`
+	Reason            string      `json:"reason" dc:"如果不成功告知失败原因" v:"required"`
+	TargetPhoneNumber string      `json:"target_phone_number" v:"required"`
+	TaskId            int         `json:"task_id" v:"required"`
+	StartTime         *gtime.Time `json:"start_time" v:"required"`
 }
-type ReportTaskResultRes struct{}
+type ReportTaskResultRes struct {
+	ID int64 `json:"id"`
+}
 
 // Report Receive Content
 

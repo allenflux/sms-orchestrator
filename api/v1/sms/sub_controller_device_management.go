@@ -57,9 +57,12 @@ type SubGroupListRes struct {
 type SubCreateGroupReq struct {
 	g.Meta    `path:"/sub/group" tags:"子平台设备列表" method:"post" dc:"创建当前用户下的分组列表" `
 	SubUserID int    `json:"sub_user_id"  v:"required" dc:"子平台用户账号ID"`
+	ProjectID int    `json:"project_id"  v:"required" dc:"平台当前子用户下的projectID"`
 	GroupName string `json:"group_name" v:"required"`
 }
-type SubCreateGroupRes struct{}
+type SubCreateGroupRes struct {
+	ID int64 `json:"id"`
+}
 
 // Update Group
 type SubUpdateGroupReq struct {
@@ -80,7 +83,8 @@ type SubDeleteGroupRes struct{}
 //AllocateDevice2Group
 
 type AllocateDevice2GroupReq struct {
-	g.Meta       `path:"/device/group" tags:"设备列表" method:"post" dc:"分配设备给分组" `
+	g.Meta       `path:"/sub/device/group" tags:"子平台设备列表" method:"post" dc:"分配设备给分组" `
+	SubUserID    int      `json:"sub_user_id"  v:"required" dc:"子平台用户账号ID"`
 	DeviceIdList []string `json:"device_id_list" v:"required"`
 	GroupID      int      `json:"group_id" v:"required"`
 }

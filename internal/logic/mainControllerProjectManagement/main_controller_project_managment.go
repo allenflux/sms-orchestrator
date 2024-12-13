@@ -56,9 +56,13 @@ func (s *sMainControllerProjectManagement) CreateProject(ctx context.Context, re
 		ProjectName: req.ProjectName,
 		Note:        req.Note,
 	}
-	if _, err := dao.ProjectList.Ctx(ctx).Data(row).Insert(); err != nil {
+	var rowID int64
+	if rowID, err = dao.ProjectList.Ctx(ctx).Data(row).InsertAndGetId(); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("插入数据库错误")
+	}
+	res = &sms.ProjectCreateRes{
+		ID: rowID,
 	}
 	return
 }
@@ -103,11 +107,17 @@ func (s *sMainControllerProjectManagement) AllocateAccount2Project(ctx context.C
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询数据库错误")
 	}
-	// todo 查询子用户表 分配相关的获得子账号名和uid
+	// todo 查询子用户表 分配相关的获得子账号名
 
 	accountName := "todo 测试子账号"
-	accountID := 100
-	if _, err := dao.ProjectList.Ctx(ctx).Data(g.Map{"associated_account_id": accountID, "associated_account": accountName}).Where("id = ?", req.ProjectId).Update(); err != nil {
+
+	// 更新Device list 表
+	if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"owner_account": accountName, "owner_account_id": req.AccountId}).Where("assigned_items_id = ? ", req.ProjectId).Update(); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, err
+	}
+
+	if _, err := dao.ProjectList.Ctx(ctx).Data(g.Map{"associated_account_id": req.AccountId, "associated_account": accountName}).Where("id = ?", req.ProjectId).Update(); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("数据库更新错误")
 	}
