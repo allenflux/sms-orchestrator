@@ -4,14 +4,14 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"sms_backend/api/v1/allUser"
 	"sms_backend/internal/consts"
-	"sms_backend/internal/model/entity"
+	"sms_backend/internal/model"
 )
 
 type RegisterReq struct {
 	g.Meta   `path:"/register" tags:"账号管理" method:"post" sm:"添加账号"`
 	Username string                 `json:"username" v:"passport" dc:"用户名"`
 	Password string                 `json:"password" v:"password" dc:"密码"`
-	Role     int                    `json:"role" v:"required" dc:"角色id"`
+	RoleId   int                    `json:"role_id" v:"required" dc:"角色id"`
 	Status   consts.EnumsUserStatus `json:"status" v:"enums" dc:"状态,1-停用 2-启用"`
 	Note     string                 `json:"note" dc:"备注"`
 }
@@ -25,14 +25,14 @@ type GetListReq struct {
 
 type GetListRes struct {
 	g.Meta `mime:"application/json"`
-	List   []*entity.User
+	List   []*model.User
 	allUser.GeneralRes
 }
 
 type UpdateReq struct {
 	g.Meta `path:"/update" tags:"账号管理" method:"put" sm:"修改账号"`
 	ID     int    `json:"id" v:"required" dc:"账号id"`
-	Role   int    `json:"role" v:"required" dc:"角色id"`
+	RoleId int    `json:"role_id" v:"required" dc:"角色id"`
 	Note   string `json:"note" dc:"备注"`
 }
 

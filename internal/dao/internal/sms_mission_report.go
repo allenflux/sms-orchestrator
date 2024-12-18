@@ -38,6 +38,8 @@ type SmsMissionReportColumns struct {
 	ProjectName         string // 项目名称
 	AssociatedAccountId string // 所属子账号id
 	GroupId             string // 分组id
+	SentSuccessQuantity string // 发送成功数量
+	SentFailQuantity    string // 发送失败数量
 }
 
 // smsMissionReportColumns holds the columns for table sms_mission_report.
@@ -60,6 +62,8 @@ var smsMissionReportColumns = SmsMissionReportColumns{
 	ProjectName:         "project_name",
 	AssociatedAccountId: "associated_account_id",
 	GroupId:             "group_id",
+	SentSuccessQuantity: "sent_success_quantity",
+	SentFailQuantity:    "sent_fail_quantity",
 }
 
 // NewSmsMissionReportDao creates and returns a new DAO object for table data access.
