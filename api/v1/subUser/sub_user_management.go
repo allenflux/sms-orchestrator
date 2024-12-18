@@ -4,7 +4,7 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"sms_backend/api/v1/allUser"
 	"sms_backend/internal/consts"
-	"sms_backend/internal/model/entity"
+	"sms_backend/internal/model"
 )
 
 type SubRegisterReq struct {
@@ -25,7 +25,7 @@ type SubGetListReq struct {
 
 type SubGetListRes struct {
 	g.Meta `mime:"application/json"`
-	List   []*entity.User
+	List   []*model.SubUser
 	allUser.GeneralRes
 }
 
