@@ -20,34 +20,42 @@ type SmsChartLogDao struct {
 
 // SmsChartLogColumns defines and stores column names for table sms_chart_log.
 type SmsChartLogColumns struct {
-	Id                string //
-	ProjectName       string // 项目名称
-	ProjectId         string // 项目id
-	TargetPhoneNumber string // 目标手机号
-	DeviceNumber      string // 执行设备号
-	SmsTopic          string // 短信主题
-	SmsContent        string // 短信内容
-	SmsStatus         string // 短信发送状态，1-失败 2-成
-	AssociatedAccount string // 所属子账号
-	CreatedAt         string // 创建时间
-	UpdateAt          string // 修改时间
-	DeleteAt          string // 删除时间
+	Id                  string //
+	ProjectName         string // 项目名称
+	ProjectId           string // 项目id
+	TargetPhoneNumber   string // 目标手机号
+	DeviceNumber        string // 执行设备号
+	SmsTopic            string // 短信主题
+	SmsContent          string // 短信内容
+	SmsStatus           string // 短信发送状态，1-失败 2-成
+	AssociatedAccount   string // 所属子账号
+	CreatedAt           string // 创建时间
+	UpdateAt            string // 修改时间
+	DeleteAt            string // 删除时间
+	SentOrReceive       string // 1表示此条短信是发送 2表示此条短信是接收
+	AssociatedAccountId string // 子账号id
+	RowHash             string // log hash 防止重复上报
+	TaskId              string // Mission Task的id 任务 id
 }
 
 // smsChartLogColumns holds the columns for table sms_chart_log.
 var smsChartLogColumns = SmsChartLogColumns{
-	Id:                "id",
-	ProjectName:       "project_name",
-	ProjectId:         "project_id",
-	TargetPhoneNumber: "target_phone_number",
-	DeviceNumber:      "device_number",
-	SmsTopic:          "sms_topic",
-	SmsContent:        "sms_content",
-	SmsStatus:         "sms_status",
-	AssociatedAccount: "associated_account",
-	CreatedAt:         "created_at",
-	UpdateAt:          "update_at",
-	DeleteAt:          "delete_at",
+	Id:                  "id",
+	ProjectName:         "project_name",
+	ProjectId:           "project_id",
+	TargetPhoneNumber:   "target_phone_number",
+	DeviceNumber:        "device_number",
+	SmsTopic:            "sms_topic",
+	SmsContent:          "sms_content",
+	SmsStatus:           "sms_status",
+	AssociatedAccount:   "associated_account",
+	CreatedAt:           "created_at",
+	UpdateAt:            "update_at",
+	DeleteAt:            "delete_at",
+	SentOrReceive:       "sent_or_receive",
+	AssociatedAccountId: "associated_account_id",
+	RowHash:             "row_hash",
+	TaskId:              "task_id",
 }
 
 // NewSmsChartLogDao creates and returns a new DAO object for table data access.

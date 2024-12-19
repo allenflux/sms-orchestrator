@@ -30,4 +30,6 @@ type SmsMissionReport struct {
 	ProjectName         interface{} // 项目名称
 	AssociatedAccountId interface{} // 所属子账号id
 	GroupId             interface{} // 分组id
+	SentSuccessQuantity interface{} // 发送成功数量
+	SentFailQuantity    interface{} // 发送失败数量
 }

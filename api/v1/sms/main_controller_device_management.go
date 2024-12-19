@@ -66,7 +66,7 @@ type DeviceListReq struct {
 }
 type DeviceListResData struct {
 	ID            int    `json:"id"`
-	DeviceID      string `json:"device_id"`
+	ProjectID     int    `json:"project_id"`
 	DeviceNumber  string `json:"device_number"`
 	Number        string `json:"number"`
 	ActiveDays    int    `json:"active_days"`

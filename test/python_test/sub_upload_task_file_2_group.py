@@ -23,7 +23,7 @@ with open("./group_id.json") as f:
 group_id = group_id_list[0]
 
 task_name ="python-task-" + faker.word()
-
+group_id = 2
 def sub_upload_task():
     print("task_name:",task_name)
     print("group_id:",group_id)

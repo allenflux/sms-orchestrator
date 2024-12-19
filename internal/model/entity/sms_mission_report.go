@@ -28,4 +28,6 @@ type SmsMissionReport struct {
 	ProjectName         string      `json:"project_name"          orm:"project_name"          description:"项目名称"`                         // 项目名称
 	AssociatedAccountId int         `json:"associated_account_id" orm:"associated_account_id" description:"所属子账号id"`                      // 所属子账号id
 	GroupId             int         `json:"group_id"              orm:"group_id"              description:"分组id"`                         // 分组id
+	SentSuccessQuantity int         `json:"sent_success_quantity" orm:"sent_success_quantity" description:"发送成功数量"`                       // 发送成功数量
+	SentFailQuantity    int         `json:"sent_fail_quantity"    orm:"sent_fail_quantity"    description:"发送失败数量"`                       // 发送失败数量
 }

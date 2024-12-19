@@ -14,6 +14,7 @@ type Role struct {
 	g.Meta    `orm:"table:role, do:true"`
 	Id        interface{} //
 	Name      interface{} // 角色名称
+	Note      interface{} // 备注
 	CreatedAt *gtime.Time // 创建时间
 	UpdateAt  *gtime.Time // 修改时间
 	DeleteAt  *gtime.Time // 删除时间

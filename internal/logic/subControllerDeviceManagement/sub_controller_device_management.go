@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
-	"sms_backend/utility"
 	"strconv"
-	"time"
 )
 
 func New() *sSubControllerDeviceManagement {
@@ -25,7 +24,7 @@ type sSubControllerDeviceManagement struct{}
 
 func (s *sSubControllerDeviceManagement) GetDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (res *sms.SubDeviceListRes, err error) {
 	raw := make([]*entity.DeviceList, 0)
-	dbTemper := dao.DeviceList.Ctx(ctx).Page(req.PageNum, req.PageSize).Order("id desc").Where("owner_account_id = ？", req.SubUserID)
+	dbTemper := dao.DeviceList.Ctx(ctx).Page(req.PageNum, req.PageSize).Order("id desc").Where("owner_account_id=", req.SubUserID)
 
 	if req.TaskName != "" {
 		dbTemper = dbTemper.Where("task_name like ?", "%"+req.TaskName+"%")
@@ -54,42 +53,58 @@ func (s *sSubControllerDeviceManagement) GetDeviceList(ctx context.Context, req 
 	var totalCount int
 	if err := dbTemper.ScanAndCount(&raw, &totalCount, false); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("查询 DeviceList 错误")
 	}
+	res = &sms.SubDeviceListRes{}
 	res.Total = totalCount
-	data := make([]sms.DeviceListResData, len(raw))
-	currentTime := time.Now().Second()
+	data := make([]sms.SubDeviceListResData, len(raw))
+	currentTime := gtime.Now()
 	for i := range raw {
-		data[i] = sms.DeviceListResData{
+		data[i] = sms.SubDeviceListResData{
 			ID:            raw[i].Id,
 			DeviceNumber:  raw[i].DeviceNumber,
 			DeviceStatus:  raw[i].DeviceStatus,
 			SentStatus:    raw[i].SentStatus,
-			DeviceID:      raw[i].DeviceId,
+			ProjectID:     raw[i].AssignedItemsId,
 			Number:        raw[i].Number,
-			ActiveDays:    utility.Second2Day(currentTime - raw[i].ActiveTime.Second()),
+			ActiveDays:    int(currentTime.Sub(raw[i].ActiveTime).Hours() / 24),
 			OwnerAccount:  raw[i].OwnerAccount,
 			AssignedItems: raw[i].AssignedItems,
 			QuantitySent:  strconv.Itoa(raw[i].QuantitySent),
 			ActiveTime:    raw[i].ActiveTime.String(),
 		}
 	}
-
+	res.Data = data
 	return
 }
 
 func (s *sSubControllerDeviceManagement) GroupCreate(ctx context.Context, req *sms.SubCreateGroupReq) (res *sms.SubCreateGroupRes, err error) {
 	if count, err := dao.SubGroup.Ctx(ctx).Where("sub_user_id = ?", req.SubUserID).Where("sub_group_name = ?", req.GroupName).Count(); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("Count SubGroup DB 错误 ")
 	} else if count > 0 {
 		return nil, errors.New("此名称以存在 请更换分组名称")
 	}
-	// todo Check project和sub user id 关联性检查
+
+	var project entity.ProjectList
+	c := 0
+	if err := dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).ScanAndCount(&project, &c, false); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("Scan ProjectList DB 错误 ")
+	} else if c == 0 {
+		return nil, errors.New("Project ID 错误 所查询的Project 不存在 ")
+	}
+	if project.AssociatedAccountId == 0 {
+		return nil, errors.New("非法创建 当前项目还未分配")
+	}
+	if project.AssociatedAccountId != req.SubUserID {
+		return nil, errors.New("非法创建 这个项目所分配的子用户不是当前子用户")
+	}
+
 	var rawId int64
 	if rawId, err = dao.SubGroup.Ctx(ctx).Data(g.Map{"sub_user_id": req.SubUserID, "sub_group_name": req.GroupName, "project_id": req.ProjectID}).InsertAndGetId(); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("分组创建失败")
+		return nil, errors.New("SubGroup 分组创建失败")
 	}
 	res = &sms.SubCreateGroupRes{
 		ID: rawId,
@@ -100,7 +115,7 @@ func (s *sSubControllerDeviceManagement) GroupCreate(ctx context.Context, req *s
 func (s *sSubControllerDeviceManagement) GroupUpdate(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error) {
 	if count, err := dao.SubGroup.Ctx(ctx).Where("sub_user_id = ?", req.SubUserID).Where("sub_group_name = ?", req.GroupName).Count(); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("SubGroup 查询错误")
 	} else if count > 0 {
 		return nil, errors.New("此名称以存在 请更换分组名称再更新")
 	}
@@ -125,12 +140,18 @@ func (s *sSubControllerDeviceManagement) GroupDelete(ctx context.Context, req *s
 // Get Group List
 
 func (s *sSubControllerDeviceManagement) GroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error) {
-	data := make([]*entity.SubGroup, 0)
-	if err = dao.SubGroup.Ctx(ctx).Where("sub_user_id=?", req.SubUserID).Scan(data); err != nil {
+	var data []*entity.SubGroup
+	c := 0
+	if err = dao.SubGroup.Ctx(ctx).Where("sub_user_id=?", req.SubUserID).ScanAndCount(&data, &c, false); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("分组查询失败")
 	}
-	res.Data = make([]sms.SubGroupListResData, len(data))
+	if c == 0 {
+		return nil, errors.New("当前用户无分组")
+	}
+	res = &sms.SubGroupListRes{
+		Data: make([]sms.SubGroupListResData, len(data)),
+	}
 	for i := range data {
 		res.Data[i] = sms.SubGroupListResData{
 			GroupName: data[i].SubGroupName,
@@ -146,11 +167,21 @@ func (s *sSubControllerDeviceManagement) AllocateDevice2Group(ctx context.Contex
 	}
 	// get Group name
 	var group entity.SubGroup
-	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).Scan(&group); err != nil {
+	c := 0
+	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).ScanAndCount(&group, &c, false); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("数据库查询SubGroup错误")
 	}
+	if c == 0 {
+		return nil, errors.New("未查询到相关Group 请检查参数 Group id")
+	}
 	for i := range req.DeviceIdList {
+		if count, err := dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).Count(); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("查询 DeviceList 错误 ")
+		} else if count == 0 {
+			return nil, errors.New("错误的Device ID， 请改正")
+		}
 		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"group_name": group.SubGroupName, "group_id": group.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("更新 DeviceList DB group_name 和 group_id 错误")

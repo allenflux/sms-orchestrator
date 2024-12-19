@@ -22,6 +22,7 @@ type RoleDao struct {
 type RoleColumns struct {
 	Id        string //
 	Name      string // 角色名称
+	Note      string // 备注
 	CreatedAt string // 创建时间
 	UpdateAt  string // 修改时间
 	DeleteAt  string // 删除时间
@@ -31,6 +32,7 @@ type RoleColumns struct {
 var roleColumns = RoleColumns{
 	Id:        "id",
 	Name:      "name",
+	Note:      "note",
 	CreatedAt: "created_at",
 	UpdateAt:  "update_at",
 	DeleteAt:  "delete_at",

@@ -108,3 +108,48 @@ type SubTaskRecordRes struct {
 	commonApi.ListRes
 	Data []SubTaskRecordResData `json:"data"`
 }
+
+type SubGetConversationRecordReq struct {
+	g.Meta    `path:"/sub/conversation/record" tags:"子平台消息对话" method:"get" dc:"查看消息对话内容" `
+	SubUserID int `json:"sub_user_id" v:"required"`
+	ChatLogID int `json:"chat_log_id" v:"required" dc:"需要回复的chart id"`
+}
+
+type SubGetConversationRecordRes struct {
+	Data []SubGetConversationRecordListResData `json:"data"`
+}
+
+type SubGetConversationRecordListReq struct {
+	g.Meta    `path:"/sub/conversation/record/list" tags:"子平台消息对话" method:"get" dc:"查看消息对话列表" `
+	SubUserID int `json:"sub_user_id" v:"required"`
+	ProjectID int `json:"project_id" v:"required"`
+}
+type SubGetConversationRecordListResData struct {
+	TargetPhoneNumber string      `json:"target_phone_number"`
+	Content           string      `json:"content"`
+	SentOrReceive     int         `json:"sent_or_receive" dc:"1表示此条短信是发送 2表示此条短信是接收"`
+	RecordTime        *gtime.Time `json:"record_time" dc:"接收到信息的时间"`
+	ChatLogID         int         `json:"chat_log_id"  dc:"chart id"`
+}
+type SubGetConversationRecordListRes struct {
+	Data []SubGetConversationRecordListResData `json:"data"`
+}
+
+type SubPostConversationRecordReq struct {
+	g.Meta     `path:"/sub/conversation/record" tags:"子平台消息对话" method:"post" dc:"在对话中发送消息" `
+	SubUserID  int    `json:"sub_user_id" v:"required"`
+	ChartLogID int    `json:"chart_log_id" v:"required" dc:"需要回复的chat id"`
+	Content    string `json:"content" v:"required"`
+}
+
+type SubPostConversationRecordRes struct {
+	UnSendTaskNum int64  `json:"un_send_task_num" dc:"此种任务类型 当前设备未发送数量"`
+	TaskItemName  string `json:"task_item_name"`
+}
+
+type SubPostConversationRecordData struct {
+	TaskID            int    `json:"task_id"`
+	Content           string `json:"content"`
+	DeviceNumber      string `json:"device_number"`
+	TargetPhoneNumber string `json:"target_phone_number"`
+}
