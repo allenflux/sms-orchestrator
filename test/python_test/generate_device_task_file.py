@@ -12,7 +12,7 @@ fake = Faker()
 def generate_device_task_file():
     content_list = []
     phone_list = []
-    for i in range(20):
+    for i in range(200):
         content_list.append(fake.text(max_nb_chars=200))
         phone_list.append(fake.phone_number())
 

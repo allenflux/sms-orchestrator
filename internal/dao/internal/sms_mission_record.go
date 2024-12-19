@@ -27,7 +27,7 @@ type SmsMissionRecordColumns struct {
 	DeviceNumber        string // 执行设备号
 	SmsTopic            string // 短信主题
 	SmsContent          string // 短信内容
-	SmsStatus           string // 短信发送状态，1-失败 2-成功
+	SmsStatus           string // 短信发送状态，2-失败 1-成功
 	AssociatedAccount   string // 所属子账号
 	ProjectName         string // 所属项目名称
 	ProjectId           string // 所属项目id

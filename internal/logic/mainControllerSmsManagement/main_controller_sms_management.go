@@ -38,6 +38,7 @@ func (s *sMainControllerSmsManagement) GetTaskList(ctx context.Context, req *sms
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询DB SmsMissionReport 错误")
 	}
+	res = &sms.TaskListRes{}
 	res.Total = totalCount
 	res.Data = make([]sms.TaskListResData, len(data))
 	for i := range data {
@@ -97,6 +98,7 @@ func (s *sMainControllerSmsManagement) GetTaskRecordList(ctx context.Context, re
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询DB SmsMissionRecord 错误")
 	}
+	res = &sms.TaskRecordRes{}
 	res.Total = totalCount
 	res.Data = make([]sms.TaskRecordResData, len(data))
 	for i := range data {

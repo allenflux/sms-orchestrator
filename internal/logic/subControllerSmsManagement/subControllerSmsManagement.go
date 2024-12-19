@@ -160,7 +160,67 @@ func (s *sSubControllerSmsManagement) TaskReportDelete(ctx context.Context, req 
 	// todo 撤销任务时做任务状态检查
 	if _, err = dao.SmsMissionReport.Ctx(ctx).Where("id = ?", req.TaskID).Delete(); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("删除记录失败 SmsMissionReport")
+	}
+	return
+}
+
+func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Context, req *sms.SubGetConversationRecordReq) (res *sms.SubGetConversationRecordRes, err error) {
+	var chatLog entity.SmsChartLog
+	if err = dao.SmsChartLog.Ctx(ctx).Where("id = ?", req.ChatLogID).Scan(&chatLog); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询 DB SmsChartLog 错误")
+	}
+	if chatLog.AssociatedAccountId != req.SubUserID {
+		return nil, errors.New("sub user id 验证错误")
+	}
+	var chatLogList []*entity.SmsChartLog
+	if err = dao.SmsChartLog.Ctx(ctx).Where("target_phone_number = ?", chatLog.TargetPhoneNumber).Where("device_number = ?", chatLog.DeviceNumber).OrderDesc("id").Scan(&chatLogList); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询 DB SmsChartLog 错误2")
+	}
+
+	data := make([]sms.SubGetConversationRecordListResData, len(chatLogList))
+	for i := range chatLogList {
+		data[i].ChatLogID = chatLogList[i].Id
+		data[i].RecordTime = chatLogList[i].CreatedAt
+		data[i].Content = chatLogList[i].SmsContent
+		data[i].TargetPhoneNumber = chatLogList[i].TargetPhoneNumber
+		data[i].SentOrReceive = chatLogList[i].SentOrReceive
+	}
+	res = &sms.SubGetConversationRecordRes{
+		Data: data,
+	}
+
+	return
+}
+
+func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.Context, req *sms.SubGetConversationRecordListReq) (res *sms.SubGetConversationRecordListRes, err error) {
+	var chatLogsId []*entity.SmsChartLog
+	var chatLogs []*entity.SmsChartLog
+	if err = dao.SmsChartLog.Ctx(ctx).Where("project_id=?", req.ProjectID).Where("associated_account_id=?", req.SubUserID).FieldMax("id", "id").Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询SmsChartLog IDs错误")
+	}
+	idList := make([]int, len(chatLogsId))
+	for i := range chatLogsId {
+		idList[i] = chatLogsId[i].Id
+	}
+
+	if err = dao.SmsChartLog.Ctx(ctx).WhereIn("id", idList).Scan(&chatLogs); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询SmsChartLog错误")
+	}
+	data := make([]sms.SubGetConversationRecordListResData, len(chatLogs))
+	for i := range chatLogs {
+		data[i].ChatLogID = chatLogs[i].Id
+		data[i].RecordTime = chatLogs[i].CreatedAt
+		data[i].Content = chatLogs[i].SmsContent
+		data[i].TargetPhoneNumber = chatLogs[i].TargetPhoneNumber
+		data[i].SentOrReceive = chatLogs[i].SentOrReceive
+	}
+	res = &sms.SubGetConversationRecordListRes{
+		Data: data,
 	}
 	return
 }
@@ -219,5 +279,43 @@ func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req
 			CreateTime:        data[i].CreatedAt.String(),
 		}
 	}
+	return
+}
+
+// 接收Sub User输入的内容放入 Cache，作为优先任务暴露给Device执行
+
+func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context, req *sms.SubPostConversationRecordReq) (res *sms.SubPostConversationRecordRes, err error) {
+	// search DB 获取chart log信息
+	var chartLog entity.SmsChartLog
+	c := 0
+	if err = dao.SmsChartLog.Ctx(ctx).Where("id = ?", req.ChartLogID).ScanAndCount(&chartLog, &c, false); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("数据库操作错误 查询 Task ChartLogID 错误")
+	}
+	if c == 0 {
+		return nil, errors.New("未查询到 Task ChartLog")
+	}
+
+	// 验证Sub User id
+	if req.SubUserID != chartLog.AssociatedAccountId {
+		return nil, errors.New("验证sub user id失败，发送消息不属于原任务 report 的信息")
+	}
+	// 生成任务信息
+	// {TargetPhoneNumber: ... DeviceNumber: ... Content: ... TaskID ...}
+	message := sms.SubPostConversationRecordData{
+		TaskID:            chartLog.TaskId,
+		Content:           req.Content,
+		DeviceNumber:      chartLog.DeviceNumber,
+		TargetPhoneNumber: chartLog.TargetPhoneNumber,
+	}
+	// 生成任务队列
+	var rIndex int64
+	if rIndex, err = g.Redis().LPush(ctx, chartLog.DeviceNumber, message); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("插入redis list 错误")
+	}
+	res = &sms.SubPostConversationRecordRes{}
+	res.TaskItemName = chartLog.DeviceNumber
+	res.UnSendTaskNum = rIndex
 	return
 }

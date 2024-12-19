@@ -15,6 +15,7 @@ type (
 		DeviceRegister(ctx context.Context, req *career.RegisterReq) (res *career.RegisterRes, err error)
 		FetchTasks(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error)
 		ReportTaskResult(ctx context.Context, req *career.ReportTaskResultReq) (res *career.ReportTaskResultRes, err error)
+		ReportReceiveContent(ctx context.Context, req *career.ReportReceiveContentReq) (res *career.ReportReceiveContentRes, err error)
 	}
 )
 

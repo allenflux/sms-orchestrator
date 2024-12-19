@@ -9,7 +9,7 @@ import (
 type SubDeviceListReq struct {
 	g.Meta `path:"/sub/device/list" tags:"子平台设备列表" method:"get" dc:"查看设备列表" `
 	model.PageReq
-	SubUserID       int      `json:"sub_user_id" validate:"required,gte=1" dc:"子平台用户id"`
+	SubUserID       int      `json:"sub_user_id" v:"required" dc:"子平台用户id"`
 	SentDateRange   []string `json:"sent_date_range" p:"dateRange" description:"发送时间日期范围"`
 	CreateDateRange []string `json:"create_date_range" p:"dateRange" description:"创建时间日期范围"`
 	ProjectID       string   `json:"project_id" dc:"查询条件中的项目ID"`
@@ -19,20 +19,22 @@ type SubDeviceListReq struct {
 	DeviceNumber    string   `json:"device_number" dc:"设备序列号"`
 }
 
+type SubDeviceListResData struct {
+	ID            int    `json:"id"`
+	ProjectID     int    `json:"project_id"`
+	DeviceNumber  string `json:"device_number"`
+	Number        string `json:"number"`
+	ActiveDays    int    `json:"active_days"`
+	OwnerAccount  string `json:"owner_account"`
+	AssignedItems string `json:"assigned_items"`
+	SentStatus    int    `json:"sent_status" dc:"1 空闲 2 异常 3 占用"`
+	QuantitySent  string `json:"quantity_sent"`
+	DeviceStatus  int    `json:"device_status" dc:"1 空闲 2 异常 3 占用"`
+	ActiveTime    string `json:"active_time"`
+}
+
 type SubDeviceListRes struct {
-	Data struct {
-		ID            int    `json:"id"`
-		GroupName     string `json:"group_name"`
-		DeviceID      string `json:"device_id"`
-		DeviceNumber  string `json:"device_number"`
-		Number        string `json:"number"`
-		ActiveDays    int    `json:"active_days"`
-		AssignedItems string `json:"assigned_items" dc:"所属项目"`
-		SentStatus    int    `json:"sent_status" dc:"1 空闲 2 异常 3 占用"`
-		QuantitySent  string `json:"quantity_sent" dc:"发送数量"`
-		DeviceStatus  int    `json:"device_status" dc:"1 空闲 2 异常 3 占用"`
-		ActiveTime    string `json:"active_time"`
-	} `json:"data"`
+	Data []SubDeviceListResData `json:"data"`
 	commonApi.ListRes
 }
 
