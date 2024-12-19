@@ -20,7 +20,7 @@ logger:
   path: "resource/log/run"
   file: "{Y-m-d}.log"
   level: "all"
-  stdout: false # 不输出到标准输出，但会输出到日志文件
+  stdout: true # 不输出到标准输出，但会输出到日志文件
   rotateSize: "512M" # 日志文件大小超过512M时会自动切割
   rotateBackupLimit: 100 # 最多保留100个日志文件
   rotateBackupExpire: "7d" # 日志文件保留7天
@@ -96,23 +96,8 @@ oss:
   secret_id : "AKIDsfGieQKBqHj7WqEZ8c0Rp5EE80xpY8Wg"
   secret_key : "BE7DHOPFKYefkjWTH2b4NTO6d0DG8oJb"
 
-# speedpay配置
-speedpay:
-  app_id: "apptest1815392869523914752"
-  app_secret: "1843b1749117c207f32dcc496357a9e5a2beccd7"
-  referrer: "spac41zts"
-  env: "dev"
 
-upay:
-  url: "https://a1.pppkf.cc"
 
-#短信验证码配置
-MobileCodeConf:
-  Addr: "http://api.smsbao.com/sms"
-  Username: "zyy34088"
-  Password: "c9955ba991b14bc6b2e8cd06e04d4a8d"
-  Template: "【智天】您的验证码是{code}。如非本人操作，请忽略本短信"
-  Env: "dev"  # prod调短信平台发送短信 ,  dev不调短信平台
 
 #调试在测试环境下无法走通的api使用 为跳过真实API调用
 DeveloperModel:

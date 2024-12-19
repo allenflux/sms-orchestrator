@@ -4,13 +4,12 @@ import (
 	"context"
 	"errors"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
-	"sms_backend/utility"
 	"strconv"
-	"time"
 )
 
 func New() *sMainControllerDeviceManagement {
@@ -54,27 +53,29 @@ func (s *sMainControllerDeviceManagement) GetDeviceList(ctx context.Context, req
 	var totalCount int
 	if err := dbTemper.ScanAndCount(&raw, &totalCount, false); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("ScanAndCount错误 Table DeviceList")
 	}
+	res = &sms.DeviceListRes{}
 	res.Total = totalCount
 	data := make([]sms.DeviceListResData, len(raw))
-	currentTime := time.Now().Second()
+
+	currentTime := gtime.Now()
 	for i := range raw {
 		data[i] = sms.DeviceListResData{
 			ID:            raw[i].Id,
 			DeviceNumber:  raw[i].DeviceNumber,
 			DeviceStatus:  raw[i].DeviceStatus,
 			SentStatus:    raw[i].SentStatus,
-			DeviceID:      raw[i].DeviceId,
+			ProjectID:     raw[i].AssignedItemsId,
 			Number:        raw[i].Number,
-			ActiveDays:    utility.Second2Day(currentTime - raw[i].ActiveTime.Second()),
+			ActiveDays:    int(currentTime.Sub(raw[i].ActiveTime).Hours() / 24),
 			OwnerAccount:  raw[i].OwnerAccount,
 			AssignedItems: raw[i].AssignedItems,
 			QuantitySent:  strconv.Itoa(raw[i].QuantitySent),
 			ActiveTime:    raw[i].ActiveTime.String(),
 		}
 	}
-
+	res.Data = data
 	return
 }
 
@@ -84,12 +85,22 @@ func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Con
 	}
 	// get project name
 	var project entity.ProjectList
-	if err = dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).Scan(&project); err != nil {
+	c := 0
+	if err = dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).ScanAndCount(&project, &c, false); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("数据库查询ProjectList错误")
+		return nil, errors.New("数据库查询ProjectList错误" + err.Error())
+	}
+	if c == 0 {
+		return nil, errors.New("错误的ProjectID")
 	}
 
 	for i := range req.DeviceIdList {
+		if c, err = dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).Count(); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("查询DeviceList错误")
+		} else if c == 0 {
+			return nil, errors.New("不存在的Device， 请验证Device ID是否正确")
+		}
 		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("更新 DeviceList DB assigned_items 和 assigned_items_id 错误")

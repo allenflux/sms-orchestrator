@@ -19,7 +19,7 @@ type SmsMissionRecord struct {
 	DeviceNumber        interface{} // 执行设备号
 	SmsTopic            interface{} // 短信主题
 	SmsContent          interface{} // 短信内容
-	SmsStatus           interface{} // 短信发送状态，1-失败 2-成功
+	SmsStatus           interface{} // 短信发送状态，2-失败 1-成功
 	AssociatedAccount   interface{} // 所属子账号
 	ProjectName         interface{} // 所属项目名称
 	ProjectId           interface{} // 所属项目id

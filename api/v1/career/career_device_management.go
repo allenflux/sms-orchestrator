@@ -65,10 +65,13 @@ type ReportTaskResultRes struct {
 // Report Receive Content
 
 type ReportReceiveContentReq struct {
-	g.Meta       `path:"/device/task/content" tags:"Device使用的API" method:"post" dc:"根据设备号上报接收的内容"`
-	TaskId       string `json:"task_id" v:"required" dc:"任务id platform需要记录任务的关联"`
-	DeviceNumber string `json:"device_number" dc:"设备号" v:"required"`
-	SmsContent   string `json:"sms_content" v:"required" dc:"接收的内容"`
-	ReceiveTime  string `json:"receive_time" v:"required" dc:"接收时间戳"`
+	g.Meta `path:"/device/task/content" tags:"Device使用的API" method:"post" dc:"根据设备号上报接收的内容"`
+	//TaskId            int         `json:"task_id" v:"required" dc:"任务id platform需要记录任务的关联"`
+	DeviceNumber      string      `json:"device_number" dc:"设备号" v:"required"`
+	TargetPhoneNumber string      `json:"target_phone_number" dc:"设备号" v:"required"`
+	SmsContent        string      `json:"sms_content" v:"required" dc:"接收的内容"`
+	StartTime         *gtime.Time `json:"start_time" v:"required" dc:"设备内容接收时间"`
 }
-type ReportReceiveContentRes struct{}
+type ReportReceiveContentRes struct {
+	ID int64 `json:"id"`
+}

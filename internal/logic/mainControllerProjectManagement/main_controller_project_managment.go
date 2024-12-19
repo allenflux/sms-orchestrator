@@ -29,9 +29,9 @@ func (s *sMainControllerProjectManagement) ProjectList(ctx context.Context, req 
 	}
 	var data []entity.ProjectList
 	var totalCount int
-	if err := dbTemper.ScanAndCount(data, &totalCount, false); err != nil {
+	if err := dbTemper.ScanAndCount(&data, &totalCount, false); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("ScanAndCount错误 查询ProjectList")
 	}
 	res = new(sms.ProjectListRes)
 	res.Total = totalCount
@@ -114,12 +114,12 @@ func (s *sMainControllerProjectManagement) AllocateAccount2Project(ctx context.C
 	// 更新Device list 表
 	if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"owner_account": accountName, "owner_account_id": req.AccountId}).Where("assigned_items_id = ? ", req.ProjectId).Update(); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, err
+		return nil, errors.New("Update Error Table  DeviceList")
 	}
 
 	if _, err := dao.ProjectList.Ctx(ctx).Data(g.Map{"associated_account_id": req.AccountId, "associated_account": accountName}).Where("id = ?", req.ProjectId).Update(); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("数据库更新错误")
+		return nil, errors.New("数据库更新错误 ProjectList")
 	}
 	return
 }
