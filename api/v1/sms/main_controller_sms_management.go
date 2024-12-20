@@ -21,7 +21,7 @@ type TaskListResData struct {
 	TaskName          string `json:"task_name" dc:"任务名称"`
 	FileName          string `json:"file_name" dc:"文件名"`
 	DeviceQuota       string `json:"device_quota" dc:"执行设备"`
-	TaskStatus        int    `json:"task_status" dc:"任务状态"`
+	TaskStatus        int    `json:"task_status" dc:"任务状态任务状态，1-待发送 2-发送中 3-已发送 4-已撤销"`
 	SmsQuantity       int    `json:"sms_quantity" dc:"SMS Quantity 短信总条数"`
 	SurplusQuantity   int    `json:"surplus_quantity" dc:"剩余数量"`
 	QuantitySent      int    `json:"quantity_sent" dc:"以发送数量"`

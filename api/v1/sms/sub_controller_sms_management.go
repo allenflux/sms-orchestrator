@@ -44,7 +44,6 @@ type SubTaskCreateReq struct {
 	g.Meta          `path:"/sub/task" mine:"multipart/form-data" tags:"子平台群发短信" method:"post" dc:"创建任务" `
 	File            *ghttp.UploadFile `json:"file" v:"required"`
 	SubUserId       int               `json:"sub_user_id" v:"required"`
-	ProjectID       int               `json:"project_id" v:"required"`
 	TaskName        string            `json:"task_name" v:"required"`
 	GroupID         int               `json:"group_id" dc:"选择分组" v:"required"`
 	IntervalTime    string            `json:"interval_time" dc:"间隔时间" v:"required"`
@@ -62,7 +61,7 @@ type TaskFileDownloadReq struct {
 }
 
 type TaskFileDownloadRes struct {
-	R *ghttp.Response
+	JsonData string `json:"json_data" description:"文件内容"`
 }
 
 // Recall Task

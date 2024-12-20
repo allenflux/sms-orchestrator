@@ -38,12 +38,13 @@ func (s *sMainControllerProjectManagement) ProjectList(ctx context.Context, req 
 	res.Data = make([]sms.ProjectListResData, len(data))
 	for i := range data {
 		res.Data[i] = sms.ProjectListResData{
-			ID:                data[i].Id,
-			Name:              data[i].ProjectName,
-			QuantityDevice:    data[i].QuantityDevice,
-			AssociatedAccount: data[i].AssociatedAccount,
-			Note:              data[i].Note,
-			UpdateTime:        data[i].UpdateAt.String(),
+			ID:                  data[i].Id,
+			Name:                data[i].ProjectName,
+			QuantityDevice:      data[i].QuantityDevice,
+			AssociatedAccount:   data[i].AssociatedAccount,
+			AssociatedAccountId: data[i].AssociatedAccountId,
+			Note:                data[i].Note,
+			UpdateTime:          data[i].UpdateAt.String(),
 		}
 	}
 	return
@@ -55,6 +56,13 @@ func (s *sMainControllerProjectManagement) CreateProject(ctx context.Context, re
 	row := &entity.ProjectList{
 		ProjectName: req.ProjectName,
 		Note:        req.Note,
+	}
+	// 查询 project重名
+	if count, err := dao.ProjectList.Ctx(ctx).Where("project_name = ? ", req.ProjectName).Count(); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询ProjectList 错误")
+	} else if count > 0 {
+		return nil, errors.New("项目名称已存在")
 	}
 	var rowID int64
 	if rowID, err = dao.ProjectList.Ctx(ctx).Data(row).InsertAndGetId(); err != nil {
