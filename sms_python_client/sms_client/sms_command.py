@@ -7,7 +7,8 @@ import click
 from sms_client.sms_core import m_list_project, m_create_project, m_list_device_main, m_allocate_device_2_project, \
     m_list_group, m_create_group, m_list_device_sub, m_allocate_device_2_group, m_sub_upload_task, m_list_tasks, \
     m_list_tasks_sub, m_download_task_file, decode_download_task_file, m_controller_main_sms_record_list, \
-    m_controller_sub_sms_record_list, m_sub_get_conversation_record_list, m_main_get_conversation_record_list
+    m_controller_sub_sms_record_list, m_sub_get_conversation_record_list, m_main_get_conversation_record_list, \
+    m_sub_get_conversation_record, m_sub_post_conversation_record
 
 
 @click.group()
@@ -381,13 +382,37 @@ def sub_list_chats(project_id, sub_user_id, page):
     out = m_sub_get_conversation_record_list(sub_user_id, project_id, page)
     click.echo(out)
 @click.command(name="view-chat")
-def view_chat():
+@click.option(
+    "-chat-log-id",
+    "--chat-log-id",
+    help="chat_log_id",
+    type=int,
+    required=True,
+)
+def view_chat(chat_log_id):
     """view-chat"""
-    pass
+    out = m_sub_get_conversation_record(chat_log_id)
+    click.echo(out)
+
 @click.command(name="reply-chat")
-def reply_chat():
+@click.option(
+    "-chat-log-id",
+    "--chat-log-id",
+    help="chat_log_id",
+    type=int,
+    required=True,
+)
+@click.option(
+    "-text",
+    "--text",
+    help="text",
+    type=str,
+    required=True,
+)
+def reply_chat(chat_log_id, text):
     """reply-chat"""
-    pass
+    out = m_sub_post_conversation_record(chat_log_id, text)
+    click.echo(out)
 
 # Device
 @click.command(name="register-device")

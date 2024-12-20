@@ -110,9 +110,9 @@ type SubTaskRecordRes struct {
 }
 
 type SubGetConversationRecordReq struct {
-	g.Meta    `path:"/sub/conversation/record" tags:"子平台消息对话" method:"get" dc:"查看消息对话内容" `
-	SubUserID int `json:"sub_user_id" v:"required"`
-	ChatLogID int `json:"chat_log_id" v:"required" dc:"需要回复的chart id"`
+	g.Meta `path:"/sub/conversation/record" tags:"子平台消息对话" method:"get" dc:"查看消息对话内容" `
+	//SubUserID int `json:"sub_user_id" v:"required"`
+	ChatLogID int `json:"chat_log_id" v:"required" dc:"需要查看的chart id"`
 }
 
 type SubGetConversationRecordRes struct {
@@ -138,8 +138,8 @@ type SubGetConversationRecordListRes struct {
 }
 
 type SubPostConversationRecordReq struct {
-	g.Meta     `path:"/sub/conversation/record" tags:"子平台消息对话" method:"post" dc:"在对话中发送消息" `
-	SubUserID  int    `json:"sub_user_id" v:"required"`
+	g.Meta `path:"/sub/conversation/record" tags:"子平台消息对话" method:"post" dc:"在对话中发送消息" `
+	//SubUserID  int    `json:"sub_user_id" v:"required"`
 	ChartLogID int    `json:"chart_log_id" v:"required" dc:"需要回复的chat id"`
 	Content    string `json:"content" v:"required"`
 }
