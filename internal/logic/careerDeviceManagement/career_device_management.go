@@ -394,6 +394,7 @@ func (s *sCareerDeviceManagement) ReportTaskResult(ctx context.Context, req *car
 		AssociatedAccountId: mission.AssociatedAccountId,
 		ProjectName:         mission.ProjectName,
 		ProjectId:           mission.ProjectId,
+		Reason:              req.Reason,
 		StartTime:           req.StartTime,
 		RowHash:             rowHash,
 	}

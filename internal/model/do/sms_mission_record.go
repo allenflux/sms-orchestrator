@@ -29,4 +29,5 @@ type SmsMissionRecord struct {
 	DeleteAt            *gtime.Time // 删除时间
 	AssociatedAccountId interface{} // 子账户id
 	RowHash             interface{} // 每行内容的hash串 为了防止同样的记录重复提交
+	Reason              interface{} // 失败原因
 }

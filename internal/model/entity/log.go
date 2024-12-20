@@ -16,6 +16,7 @@ type Log struct {
 	ClientIp  string      `json:"client_ip"  orm:"client_ip"  description:"操作ip"`     // 操作ip
 	Function  string      `json:"function"   orm:"function"   description:"操作功能"`     // 操作功能
 	Note      string      `json:"note"       orm:"note"       description:"操作内容"`     // 操作内容
+	SystemId  int         `json:"system_id"  orm:"system_id"  description:"后台id"`     // 后台id
 	CreatedAt *gtime.Time `json:"created_at" orm:"created_at" description:"创建时间"`     // 创建时间
 	UpdateAt  *gtime.Time `json:"update_at"  orm:"update_at"  description:"修改时间"`     // 修改时间
 	DeleteAt  *gtime.Time `json:"delete_at"  orm:"delete_at"  description:"删除时间"`     // 删除时间

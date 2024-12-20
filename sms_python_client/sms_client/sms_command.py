@@ -1,15 +1,13 @@
-import datetime
 import json
 import os
 import time
-from typing import BinaryIO
 
 import click
-from faker.proxy import Faker
 
 from sms_client.sms_core import m_list_project, m_create_project, m_list_device_main, m_allocate_device_2_project, \
     m_list_group, m_create_group, m_list_device_sub, m_allocate_device_2_group, m_sub_upload_task, m_list_tasks, \
-    m_list_tasks_sub, m_download_task_file, decode_download_task_file
+    m_list_tasks_sub, m_download_task_file, decode_download_task_file, m_controller_main_sms_record_list, \
+    m_controller_sub_sms_record_list, m_sub_get_conversation_record_list, m_main_get_conversation_record_list
 
 
 @click.group()
@@ -229,9 +227,35 @@ def download_task(file_name):
 
 
 @click.command(name="list-task-record")
-def list_task_record(file_name):
+@click.option(
+    "-p",
+    "--page",
+    default=1,
+    help="List Page Num",
+)
+def list_task_record(page):
     """list-task-record"""
-    pass
+    out = m_controller_main_sms_record_list(page)
+    click.echo(out)
+
+@click.command(name="sub-list-task-record")
+@click.option(
+    "-p",
+    "--page",
+    default=1,
+    help="List Page Num",
+)
+@click.option(
+    "-sub-user-id",
+    "--sub-user-id",
+    help="sub user id",
+    type=int,
+    required=True,
+)
+def sub_list_task_record(page, sub_user_id):
+    """sub-list-task-record"""
+    out = m_controller_sub_sms_record_list(page, sub_user_id)
+    click.echo(out)
 
 # Group
 @click.command(name="list-groups")
@@ -311,9 +335,51 @@ def delete_group():
     pass
 # Chat
 @click.command(name="list-chats")
-def list_chats():
+@click.option(
+    "-project-id",
+    "--project-id",
+    help="project-id",
+    type=int,
+    required=True,
+)
+@click.option(
+    "-p",
+    "--page",
+    help="page",
+    type=int,
+    default=1,
+)
+def list_chats(project_id, page):
     """list-chats"""
-    pass
+    out = m_main_get_conversation_record_list(project_id=project_id, page=page)
+    click.echo(out)
+
+@click.command(name="sub-list-chats")
+@click.option(
+    "-project-id",
+    "--project-id",
+    help="project-id",
+    type=int,
+    required=True,
+)
+@click.option(
+    "-sub-user-id",
+    "--sub-user-id",
+    help="sub-user-id",
+    type=int,
+    required=True,
+)
+@click.option(
+    "-p",
+    "--page",
+    help="page",
+    type=int,
+    default=1,
+)
+def sub_list_chats(project_id, sub_user_id, page):
+    """sub-list-chats"""
+    out = m_sub_get_conversation_record_list(sub_user_id, project_id, page)
+    click.echo(out)
 @click.command(name="view-chat")
 def view_chat():
     """view-chat"""
@@ -366,6 +432,8 @@ sms_cli.add_command(report_receive_content)
 sms_cli.add_command(list_device)
 sms_cli.add_command(sub_list_device)
 sms_cli.add_command(download_task)
+sms_cli.add_command(sub_list_task_record)
+sms_cli.add_command(sub_list_chats)
 
 if __name__ == '__main__':
     sms_cli()
