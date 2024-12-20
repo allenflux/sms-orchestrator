@@ -199,9 +199,9 @@ func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Co
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询 DB SmsChartLog 错误")
 	}
-	if chatLog.AssociatedAccountId != req.SubUserID {
-		return nil, errors.New("sub user id 验证错误")
-	}
+	//if chatLog.AssociatedAccountId != req.SubUserID {
+	//	return nil, errors.New("sub user id 验证错误")
+	//}
 	var chatLogList []*entity.SmsChartLog
 	if err = dao.SmsChartLog.Ctx(ctx).Where("target_phone_number = ?", chatLog.TargetPhoneNumber).Where("device_number = ?", chatLog.DeviceNumber).OrderDesc("id").Scan(&chatLogList); err != nil {
 		g.Log().Error(ctx, err)
@@ -327,9 +327,9 @@ func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context
 	}
 
 	// 验证Sub User id
-	if req.SubUserID != chartLog.AssociatedAccountId {
-		return nil, errors.New("验证sub user id失败，发送消息不属于原任务 report 的信息")
-	}
+	//if req.SubUserID != chartLog.AssociatedAccountId {
+	//	return nil, errors.New("验证sub user id失败，发送消息不属于原任务 report 的信息")
+	//}
 	// 生成任务信息
 	// {TargetPhoneNumber: ... DeviceNumber: ... Content: ... TaskID ...}
 	message := sms.SubPostConversationRecordData{

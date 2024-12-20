@@ -13,7 +13,7 @@ from controller_sub.controller_sub_device_list import controller_sub_device_list
 from controller_sub.controller_sub_group import controller_sub_group_list, controller_sub_group_create, \
     allocate_device_2_group, sub_upload_task
 from controller_sub.controller_sub_sms import controller_sub_sms_record_list, controller_sub_sms_report_list, \
-    sub_get_conversation_record_list
+    sub_get_conversation_record_list, sub_get_conversation_record, sub_post_conversation_record
 
 
 def m_list_project(page):
@@ -202,9 +202,9 @@ def m_sub_get_conversation_record_list(sub_user_id, project_id, page):
         return data
     tb = pt.PrettyTable()
     data_row = data["data"]["data"]
-    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content"]
+    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content", "record_time"]
     for row in data_row:
-        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"], less_text(row["content"])])
+        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"], less_text(row["content"]),  row["record_time"]])
     return tb
 
 def m_main_get_conversation_record_list(project_id, page):
@@ -213,7 +213,29 @@ def m_main_get_conversation_record_list(project_id, page):
         return data
     tb = pt.PrettyTable()
     data_row = data["data"]["data"]
-    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content"]
+    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content", "record_time"]
     for row in data_row:
-        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"], less_text(row["content"])])
+        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"], less_text(row["content"]), row["record_time"]])
+    return tb
+
+def m_sub_get_conversation_record(chat_log_id):
+    data = sub_get_conversation_record(chat_log_id)
+    if data["code"] != 0:
+        return data
+    tb = pt.PrettyTable()
+    data_row = data["data"]["data"]
+    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content","record_time"]
+    for row in data_row:
+        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"],
+                    less_text(row["content"]),row["record_time"]])
+    return tb
+
+def m_sub_post_conversation_record(chat_log_id, text):
+    data = sub_post_conversation_record(chat_log_id, text)
+    if data["code"] != 0:
+        return data
+    data = data["data"]
+    tb = pt.PrettyTable()
+    tb.field_names = ["un_send_task_num", "task_item_name(DeviceNumber)"]
+    tb.add_row([data["un_send_task_num"], data["task_item_name"]])
     return tb
