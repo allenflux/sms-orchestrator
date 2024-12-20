@@ -14,6 +14,7 @@ type (
 	IMainControllerSmsManagement interface {
 		GetTaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error)
 		GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
+		GetConversationRecordList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error)
 	}
 )
 

@@ -98,6 +98,7 @@ type SubTaskRecordResData struct {
 	SmsContent        string `json:"sms_content" dc:"SMS Content 短信内容"`
 	SmsStatus         string `json:"sms_status" dc:"SMS Status 短信发送状态"`
 	AssociatedAccount string `json:"associated_account" dc:"所属子账号"`
+	Reason            string `json:"reason"`
 	ProjectName       string `json:"project_name" dc:"Project Name 所属项目"`
 	StartTime         string `json:"start_time" dc:"开始时间"`
 	CreateTime        string `json:"create_time" dc:"创建时间"`
@@ -119,7 +120,8 @@ type SubGetConversationRecordRes struct {
 }
 
 type SubGetConversationRecordListReq struct {
-	g.Meta    `path:"/sub/conversation/record/list" tags:"子平台消息对话" method:"get" dc:"查看消息对话列表" `
+	g.Meta `path:"/sub/conversation/record/list" tags:"子平台消息对话" method:"get" dc:"查看消息对话列表" `
+	model.PageReq
 	SubUserID int `json:"sub_user_id" v:"required"`
 	ProjectID int `json:"project_id" v:"required"`
 }
@@ -131,6 +133,7 @@ type SubGetConversationRecordListResData struct {
 	ChatLogID         int         `json:"chat_log_id"  dc:"chart id"`
 }
 type SubGetConversationRecordListRes struct {
+	commonApi.ListRes
 	Data []SubGetConversationRecordListResData `json:"data"`
 }
 

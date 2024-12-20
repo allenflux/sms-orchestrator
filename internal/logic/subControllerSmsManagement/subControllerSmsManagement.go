@@ -226,7 +226,7 @@ func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Co
 func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.Context, req *sms.SubGetConversationRecordListReq) (res *sms.SubGetConversationRecordListRes, err error) {
 	var chatLogsId []*entity.SmsChartLog
 	var chatLogs []*entity.SmsChartLog
-	if err = dao.SmsChartLog.Ctx(ctx).Where("project_id=?", req.ProjectID).Where("associated_account_id=?", req.SubUserID).FieldMax("id", "id").Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
+	if err = dao.SmsChartLog.Ctx(ctx).Page(req.PageNum, req.PageSize).Where("project_id=?", req.ProjectID).Where("associated_account_id=?", req.SubUserID).FieldMax("id", "id").Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询SmsChartLog IDs错误")
 	}
@@ -289,6 +289,7 @@ func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询DB SmsMissionRecord 错误")
 	}
+	res = &sms.SubTaskRecordRes{}
 	res.Total = totalCount
 	res.Data = make([]sms.SubTaskRecordResData, len(data))
 	for i := range data {
@@ -303,6 +304,7 @@ func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req
 			SmsStatus:         data[i].SmsStatus,
 			AssociatedAccount: data[i].AssociatedAccount,
 			ProjectName:       data[i].ProjectName,
+			Reason:            data[i].Reason,
 			StartTime:         data[i].StartTime.String(),
 			CreateTime:        data[i].CreatedAt.String(),
 		}

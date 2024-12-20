@@ -26,6 +26,7 @@ type LogColumns struct {
 	ClientIp  string // 操作ip
 	Function  string // 操作功能
 	Note      string // 操作内容
+	SystemId  string // 后台id
 	CreatedAt string // 创建时间
 	UpdateAt  string // 修改时间
 	DeleteAt  string // 删除时间
@@ -39,6 +40,7 @@ var logColumns = LogColumns{
 	ClientIp:  "client_ip",
 	Function:  "function",
 	Note:      "note",
+	SystemId:  "system_id",
 	CreatedAt: "created_at",
 	UpdateAt:  "update_at",
 	DeleteAt:  "delete_at",

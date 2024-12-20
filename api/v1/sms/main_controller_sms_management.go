@@ -2,6 +2,7 @@ package sms
 
 import (
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	commonApi "sms_backend/api/v1/common"
 	"sms_backend/internal/model"
 )
@@ -55,6 +56,7 @@ type TaskRecordResData struct {
 	TargetPhoneNumber string `json:"target_phone_number" dc:"Target Phone Number 目标手机号"`
 	DeviceNumber      string `json:"device_number" dc:"Device Number 执行设备号"`
 	SmsTopic          string `json:"sms_topic" dc:"SMS Topic 主题"`
+	Reason            string `json:"reason" dc:"消息发送失败原因"`
 	SmsContent        string `json:"sms_content" dc:"SMS Content 短信内容"`
 	SmsStatus         string `json:"sms_status" dc:"SMS Status 短信发送状态"`
 	AssociatedAccount string `json:"associated_account" dc:"所属子账号"`
@@ -75,15 +77,16 @@ type ConversationListReq struct {
 	SearchWord         string `json:"search_word" dc:"搜索对话"`
 	ConversationStatus int    `json:"conversation_status" dc:"对话状态 1-所有对话 2-正在对话" default:"1"`
 }
-
+type ConversationRecordListResData struct {
+	TargetPhoneNumber string      `json:"target_phone_number"`
+	Content           string      `json:"content"`
+	SentOrReceive     int         `json:"sent_or_receive" dc:"1表示此条短信是发送 2表示此条短信是接收"`
+	RecordTime        *gtime.Time `json:"record_time" dc:"接收到信息的时间"`
+	ChatLogID         int         `json:"chat_log_id"  dc:"chart id"`
+}
 type ConversationListRes struct {
 	commonApi.ListRes
-	Data struct {
-		ConversationID      int    `json:"conversation_id"`
-		ConversationNumber  string `json:"conversation_number" dc:"目标电话号码"`
-		SmsTime             string `json:"sms_time"`
-		ConversationContent string `json:"conversation_content" dc:"消息内容"`
-	} `json:"data"`
+	Data []ConversationRecordListResData `json:"data"`
 }
 
 type ConversationRecordReq struct {

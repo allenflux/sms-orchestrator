@@ -5,12 +5,15 @@ from controller_main.controller_main_project_list import controller_main_project
     allocate_device_2_project
 import prettytable as pt
 
+from controller_main.controller_main_sms_record_list import controller_main_sms_record_list, \
+    controller_main_sms_list_chat
 from controller_main.controller_main_sms_report_list import controller_main_sms_report_list, \
     controller_main_download_task
 from controller_sub.controller_sub_device_list import controller_sub_device_list
 from controller_sub.controller_sub_group import controller_sub_group_list, controller_sub_group_create, \
     allocate_device_2_group, sub_upload_task
-from controller_sub.controller_sub_sms import controller_sub_sms_record_list, controller_sub_sms_report_list
+from controller_sub.controller_sub_sms import controller_sub_sms_record_list, controller_sub_sms_report_list, \
+    sub_get_conversation_record_list
 
 
 def m_list_project(page):
@@ -147,3 +150,70 @@ def decode_download_task_file(data):
         tb.add_row([i, dict_data["target_phone_number"][i], dict_data["content"][i]])
     return tb, dict_data
 
+def less_text(text):
+    if len(text) > 20:
+        return text[:20] + "..."
+    return text
+def convert_send_status_2_text(status):
+    status_note = "Unknown Status"
+    if status == 1:
+        status_note = "Success"
+    elif status == 2:
+        status_note = "Failed"
+    return status_note
+
+def m_controller_main_sms_record_list(page):
+    data = controller_main_sms_record_list(page)
+    tb = pt.PrettyTable()
+    if data["code"] != 0:
+        return data
+    data_row = data["data"]["data"]
+
+    tb.field_names = ["id", "task_name", "task_id", "target_phone_number", "device_number", "sms_status", "reason","content"]
+    for row in data_row:
+        tb.add_row([row["id"], row["task_name"], row["sub_task_id"], row["target_phone_number"], row["device_number"],
+                     convert_send_status_2_text(int(row["sms_status"])), row["reason"],less_text(row["sms_content"])])
+    return tb
+
+def m_controller_sub_sms_record_list(page, sub_user_id):
+    data = controller_sub_sms_record_list(page, sub_user_id)
+    tb = pt.PrettyTable()
+    if data["code"] != 0:
+        return data
+    data_row = data["data"]["data"]
+
+    tb.field_names = ["id", "task_name", "task_id", "target_phone_number", "device_number", "sms_status", "reason",
+                      "content"]
+    for row in data_row:
+        tb.add_row([row["id"], row["task_name"], row["sub_task_id"], row["target_phone_number"], row["device_number"],
+                    convert_send_status_2_text(int(row["sms_status"])), row["reason"], less_text(row["sms_content"])])
+    return tb
+
+def check_sent_or_receive(sent_or_receive):
+    if sent_or_receive == 1:
+        return "Sent"
+    elif sent_or_receive == 2:
+        return "Received"
+    return "Unknown"
+
+def m_sub_get_conversation_record_list(sub_user_id, project_id, page):
+    data = sub_get_conversation_record_list(sub_user_id, project_id, page)
+    if data["code"] != 0:
+        return data
+    tb = pt.PrettyTable()
+    data_row = data["data"]["data"]
+    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content"]
+    for row in data_row:
+        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"], less_text(row["content"])])
+    return tb
+
+def m_main_get_conversation_record_list(project_id, page):
+    data = controller_main_sms_list_chat(project_id, page)
+    if data["code"] != 0:
+        return data
+    tb = pt.PrettyTable()
+    data_row = data["data"]["data"]
+    tb.field_names = ["chat_log_id", "sent_or_receive", "target_phone_number", "content"]
+    for row in data_row:
+        tb.add_row([row["chat_log_id"], check_sent_or_receive(row["sent_or_receive"]), row["target_phone_number"], less_text(row["content"])])
+    return tb
