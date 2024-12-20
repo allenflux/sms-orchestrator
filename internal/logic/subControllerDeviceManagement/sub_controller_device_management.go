@@ -156,6 +156,7 @@ func (s *sSubControllerDeviceManagement) GroupList(ctx context.Context, req *sms
 		res.Data[i] = sms.SubGroupListResData{
 			GroupName: data[i].SubGroupName,
 			GroupID:   data[i].Id,
+			ProjectID: data[i].ProjectId,
 		}
 	}
 	return
@@ -168,19 +169,20 @@ func (s *sSubControllerDeviceManagement) AllocateDevice2Group(ctx context.Contex
 	// get Group name
 	var group entity.SubGroup
 	c := 0
-	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).ScanAndCount(&group, &c, false); err != nil {
+	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).Where("sub_user_id = ?", req.SubUserID).ScanAndCount(&group, &c, false); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("数据库查询SubGroup错误")
 	}
 	if c == 0 {
-		return nil, errors.New("未查询到相关Group 请检查参数 Group id")
+		return nil, errors.New("未查询到相关Group 请检查参数 Group id和Sub user id")
 	}
 	for i := range req.DeviceIdList {
-		if count, err := dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).Count(); err != nil {
+
+		if count, err := dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).Where("owner_account_id = ?", req.SubUserID).Count(); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("查询 DeviceList 错误 ")
 		} else if count == 0 {
-			return nil, errors.New("错误的Device ID， 请改正")
+			return nil, errors.New("错误的Device ID或者Sub User ID， 请改正")
 		}
 		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"group_name": group.SubGroupName, "group_id": group.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)

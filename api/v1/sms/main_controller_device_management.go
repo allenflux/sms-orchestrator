@@ -13,12 +13,13 @@ type ProjectListReq struct {
 }
 
 type ProjectListResData struct {
-	ID                int    `json:"id"`
-	Name              string `json:"name" `
-	QuantityDevice    int    `json:"quantity_device"`
-	AssociatedAccount string `json:"associated_account"`
-	Note              string `json:"note"`
-	UpdateTime        string `json:"update_time"`
+	ID                  int    `json:"id"`
+	Name                string `json:"name" `
+	QuantityDevice      int    `json:"quantity_device"`
+	AssociatedAccountId int    `json:"associated_account_id"`
+	AssociatedAccount   string `json:"associated_account"`
+	Note                string `json:"note"`
+	UpdateTime          string `json:"update_time"`
 }
 
 type ProjectListRes struct {

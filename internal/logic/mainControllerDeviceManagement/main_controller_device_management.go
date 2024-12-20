@@ -95,12 +95,17 @@ func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Con
 	}
 
 	for i := range req.DeviceIdList {
-		if c, err = dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).Count(); err != nil {
+		c := 0
+		dl := &entity.DeviceList{}
+		if err = dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).ScanAndCount(dl, &c, false); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("查询DeviceList错误")
 		} else if c == 0 {
 			return nil, errors.New("不存在的Device， 请验证Device ID是否正确")
+		} else if dl.GroupId != 0 {
+			return nil, errors.New("当前Device {" + dl.DeviceNumber + "} 已经被分配 请重新选择")
 		}
+
 		if _, err = dao.DeviceList.Ctx(ctx).Data(g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("更新 DeviceList DB assigned_items 和 assigned_items_id 错误")
