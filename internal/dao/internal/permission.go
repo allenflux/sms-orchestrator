@@ -21,9 +21,15 @@ type PermissionDao struct {
 // PermissionColumns defines and stores column names for table permission.
 type PermissionColumns struct {
 	Id        string //
-	Tag       string // 功能所属标签
-	Function  string // 功能名称
-	Redirect  string // 路由重定向地址
+	Pid       string // 功能父id
+	Name      string // 规则名称
+	Title     string // 功能名称
+	Icon      string // icon图标
+	MenuType  string // 菜单类型，1-目录 2-菜单 3-按钮
+	IsHide    string // 显示状态，1-隐藏 2-显示
+	Path      string // 路由地址
+	Component string // 组件路径
+	IsCached  string // 是否缓存，1-不缓存，2-缓存
 	CreatedAt string // 创建时间
 	UpdateAt  string // 修改时间
 	DeleteAt  string // 删除时间
@@ -32,9 +38,15 @@ type PermissionColumns struct {
 // permissionColumns holds the columns for table permission.
 var permissionColumns = PermissionColumns{
 	Id:        "id",
-	Tag:       "tag",
-	Function:  "function",
-	Redirect:  "redirect",
+	Pid:       "pid",
+	Name:      "name",
+	Title:     "title",
+	Icon:      "icon",
+	MenuType:  "menu_type",
+	IsHide:    "is_hide",
+	Path:      "path",
+	Component: "component",
+	IsCached:  "is_cached",
 	CreatedAt: "created_at",
 	UpdateAt:  "update_at",
 	DeleteAt:  "delete_at",

@@ -24,7 +24,7 @@ func init() {
 type sSubControllerSmsManagement struct{}
 
 func (s *sSubControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.SubTaskListReq) (res *sms.SubTaskListRes, err error) {
-	sand := dao.SmsMissionReport.Ctx(ctx).Page(req.PageNum, req.PageSize).Where("owner_account_id = ?", req.SubUserID)
+	sand := dao.SmsMissionReport.Ctx(ctx).Page(req.PageNum, req.PageSize).Where("associated_account_id = ?", req.SubUserID)
 	if req.ProjectID != 0 {
 		sand = sand.Where("project_id = ?", req.ProjectID)
 	}
@@ -41,6 +41,7 @@ func (s *sSubControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询DB SmsMissionReport 错误")
 	}
+	res = &sms.SubTaskListRes{}
 	res.Total = totalCount
 	res.Data = make([]sms.SubTaskListResData, len(data))
 	for i := range data {
@@ -72,6 +73,32 @@ type FileData struct {
 }
 
 func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskCreateRes, err error) {
+
+	c := 0
+	var group entity.SubGroup
+	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).ScanAndCount(&group, &c, false); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询SubGroup 错误")
+	}
+	if c == 0 {
+		return nil, errors.New("未查询到相关group id，请检查 group id是否正确")
+	}
+
+	var project entity.ProjectList
+	c = 0
+	if err = dao.ProjectList.Ctx(ctx).Where("id=?", group.ProjectId).ScanAndCount(&project, &c, false); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询ProjectList错误")
+	}
+	if c == 0 {
+		return nil, errors.New("所查询的Project 不存在 请检查 Project Id 是否正确")
+	}
+	if c, err := dao.SmsMissionReport.Ctx(ctx).Where("task_name = ?", req.TaskName).Count(); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, err
+	} else if c != 0 {
+		return nil, errors.New("重复的任务名")
+	}
 
 	filename, err := req.File.Save(consts.TaskFilePath, true)
 	if err != nil {
@@ -112,14 +139,8 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 		return nil, errors.New("将文件内容存储到Redis 失败")
 	}
 
-	var project entity.ProjectList
-	if err = dao.ProjectList.Ctx(ctx).Where("id=?", req.ProjectID).Scan(&project); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询ProjectList错误")
-	}
-
 	data := entity.SmsMissionReport{
-		ProjectId:       req.ProjectID,
+		ProjectId:       group.ProjectId,
 		TaskName:        req.TaskName,
 		GroupId:         req.GroupID,
 		FileName:        filename,
@@ -149,8 +170,15 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 
 // Download File
 func (s *sSubControllerSmsManagement) TaskFileDownload(ctx context.Context, req *sms.TaskFileDownloadReq) (res *sms.TaskFileDownloadRes, err error) {
-	g.Log().Infof(ctx, "FileDownloadReq: %v", req)
-	res.R.ServeFileDownload(consts.TaskFilePath, req.FileName)
+	g.Log().Infof(ctx, "FileDownloadReq: %v", req.FileName)
+	var content []byte
+	if content, err = ioutil.ReadFile(consts.TaskFilePath + "/" + req.FileName); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("下载时存储的读取文件失败")
+	}
+	res = &sms.TaskFileDownloadRes{
+		JsonData: string(content),
+	}
 	return
 }
 
@@ -171,9 +199,9 @@ func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Co
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询 DB SmsChartLog 错误")
 	}
-	if chatLog.AssociatedAccountId != req.SubUserID {
-		return nil, errors.New("sub user id 验证错误")
-	}
+	//if chatLog.AssociatedAccountId != req.SubUserID {
+	//	return nil, errors.New("sub user id 验证错误")
+	//}
 	var chatLogList []*entity.SmsChartLog
 	if err = dao.SmsChartLog.Ctx(ctx).Where("target_phone_number = ?", chatLog.TargetPhoneNumber).Where("device_number = ?", chatLog.DeviceNumber).OrderDesc("id").Scan(&chatLogList); err != nil {
 		g.Log().Error(ctx, err)
@@ -198,7 +226,7 @@ func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Co
 func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.Context, req *sms.SubGetConversationRecordListReq) (res *sms.SubGetConversationRecordListRes, err error) {
 	var chatLogsId []*entity.SmsChartLog
 	var chatLogs []*entity.SmsChartLog
-	if err = dao.SmsChartLog.Ctx(ctx).Where("project_id=?", req.ProjectID).Where("associated_account_id=?", req.SubUserID).FieldMax("id", "id").Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
+	if err = dao.SmsChartLog.Ctx(ctx).Page(req.PageNum, req.PageSize).Where("project_id=?", req.ProjectID).Where("associated_account_id=?", req.SubUserID).FieldMax("id", "id").Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询SmsChartLog IDs错误")
 	}
@@ -261,6 +289,7 @@ func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询DB SmsMissionRecord 错误")
 	}
+	res = &sms.SubTaskRecordRes{}
 	res.Total = totalCount
 	res.Data = make([]sms.SubTaskRecordResData, len(data))
 	for i := range data {
@@ -275,6 +304,7 @@ func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req
 			SmsStatus:         data[i].SmsStatus,
 			AssociatedAccount: data[i].AssociatedAccount,
 			ProjectName:       data[i].ProjectName,
+			Reason:            data[i].Reason,
 			StartTime:         data[i].StartTime.String(),
 			CreateTime:        data[i].CreatedAt.String(),
 		}
@@ -297,9 +327,9 @@ func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context
 	}
 
 	// 验证Sub User id
-	if req.SubUserID != chartLog.AssociatedAccountId {
-		return nil, errors.New("验证sub user id失败，发送消息不属于原任务 report 的信息")
-	}
+	//if req.SubUserID != chartLog.AssociatedAccountId {
+	//	return nil, errors.New("验证sub user id失败，发送消息不属于原任务 report 的信息")
+	//}
 	// 生成任务信息
 	// {TargetPhoneNumber: ... DeviceNumber: ... Content: ... TaskID ...}
 	message := sms.SubPostConversationRecordData{

@@ -18,6 +18,7 @@ type Log struct {
 	ClientIp  interface{} // 操作ip
 	Function  interface{} // 操作功能
 	Note      interface{} // 操作内容
+	SystemId  interface{} // 后台id
 	CreatedAt *gtime.Time // 创建时间
 	UpdateAt  *gtime.Time // 修改时间
 	DeleteAt  *gtime.Time // 删除时间

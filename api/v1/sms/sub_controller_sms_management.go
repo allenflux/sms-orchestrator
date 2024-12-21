@@ -44,7 +44,6 @@ type SubTaskCreateReq struct {
 	g.Meta          `path:"/sub/task" mine:"multipart/form-data" tags:"子平台群发短信" method:"post" dc:"创建任务" `
 	File            *ghttp.UploadFile `json:"file" v:"required"`
 	SubUserId       int               `json:"sub_user_id" v:"required"`
-	ProjectID       int               `json:"project_id" v:"required"`
 	TaskName        string            `json:"task_name" v:"required"`
 	GroupID         int               `json:"group_id" dc:"选择分组" v:"required"`
 	IntervalTime    string            `json:"interval_time" dc:"间隔时间" v:"required"`
@@ -62,7 +61,7 @@ type TaskFileDownloadReq struct {
 }
 
 type TaskFileDownloadRes struct {
-	R *ghttp.Response
+	JsonData string `json:"json_data" description:"文件内容"`
 }
 
 // Recall Task
@@ -99,6 +98,7 @@ type SubTaskRecordResData struct {
 	SmsContent        string `json:"sms_content" dc:"SMS Content 短信内容"`
 	SmsStatus         string `json:"sms_status" dc:"SMS Status 短信发送状态"`
 	AssociatedAccount string `json:"associated_account" dc:"所属子账号"`
+	Reason            string `json:"reason"`
 	ProjectName       string `json:"project_name" dc:"Project Name 所属项目"`
 	StartTime         string `json:"start_time" dc:"开始时间"`
 	CreateTime        string `json:"create_time" dc:"创建时间"`
@@ -110,9 +110,9 @@ type SubTaskRecordRes struct {
 }
 
 type SubGetConversationRecordReq struct {
-	g.Meta    `path:"/sub/conversation/record" tags:"子平台消息对话" method:"get" dc:"查看消息对话内容" `
-	SubUserID int `json:"sub_user_id" v:"required"`
-	ChatLogID int `json:"chat_log_id" v:"required" dc:"需要回复的chart id"`
+	g.Meta `path:"/sub/conversation/record" tags:"子平台消息对话" method:"get" dc:"查看消息对话内容" `
+	//SubUserID int `json:"sub_user_id" v:"required"`
+	ChatLogID int `json:"chat_log_id" v:"required" dc:"需要查看的chart id"`
 }
 
 type SubGetConversationRecordRes struct {
@@ -120,7 +120,8 @@ type SubGetConversationRecordRes struct {
 }
 
 type SubGetConversationRecordListReq struct {
-	g.Meta    `path:"/sub/conversation/record/list" tags:"子平台消息对话" method:"get" dc:"查看消息对话列表" `
+	g.Meta `path:"/sub/conversation/record/list" tags:"子平台消息对话" method:"get" dc:"查看消息对话列表" `
+	model.PageReq
 	SubUserID int `json:"sub_user_id" v:"required"`
 	ProjectID int `json:"project_id" v:"required"`
 }
@@ -132,12 +133,13 @@ type SubGetConversationRecordListResData struct {
 	ChatLogID         int         `json:"chat_log_id"  dc:"chart id"`
 }
 type SubGetConversationRecordListRes struct {
+	commonApi.ListRes
 	Data []SubGetConversationRecordListResData `json:"data"`
 }
 
 type SubPostConversationRecordReq struct {
-	g.Meta     `path:"/sub/conversation/record" tags:"子平台消息对话" method:"post" dc:"在对话中发送消息" `
-	SubUserID  int    `json:"sub_user_id" v:"required"`
+	g.Meta `path:"/sub/conversation/record" tags:"子平台消息对话" method:"post" dc:"在对话中发送消息" `
+	//SubUserID  int    `json:"sub_user_id" v:"required"`
 	ChartLogID int    `json:"chart_log_id" v:"required" dc:"需要回复的chat id"`
 	Content    string `json:"content" v:"required"`
 }

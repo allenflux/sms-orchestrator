@@ -10,6 +10,13 @@ def controller_main_project_list(page):
         raise Exception(resp.status_code)
     return resp.json()
 
+def controller_main_project_list_items(sub_user_id):
+    url = settings.url_prefix + "sms/project/items"
+    resp = requests.get(url, json={"sub_user_id": sub_user_id})
+    if resp.status_code != 200:
+        raise Exception(resp.status_code)
+    return resp.json()
+
 def controller_main_project_create(project_name, note):
     url = settings.url_prefix + "sms/project"
     resp = requests.post(url, json={"project_name": project_name,"note": note})
@@ -32,3 +39,6 @@ def allocate_device_2_project(device_id, project_id):
     if resp.status_code != 200:
         raise Exception(resp.status_code)
     return resp.json()
+
+if __name__ == '__main__':
+    print(controller_main_project_list_items(0))

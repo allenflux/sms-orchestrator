@@ -27,4 +27,5 @@ type SmsMissionRecord struct {
 	DeleteAt            *gtime.Time `json:"delete_at"             orm:"delete_at"             description:"删除时间"`                     // 删除时间
 	AssociatedAccountId int         `json:"associated_account_id" orm:"associated_account_id" description:"子账户id"`                    // 子账户id
 	RowHash             string      `json:"row_hash"              orm:"row_hash"              description:"每行内容的hash串 为了防止同样的记录重复提交"` // 每行内容的hash串 为了防止同样的记录重复提交
+	Reason              string      `json:"reason"                orm:"reason"                description:"失败原因"`                     // 失败原因
 }

@@ -48,6 +48,7 @@ type SubGroupListReq struct {
 type SubGroupListResData struct {
 	GroupName string `json:"group_name"`
 	GroupID   int    `json:"group_id"`
+	ProjectID int    `json:"project_id"`
 }
 
 type SubGroupListRes struct {

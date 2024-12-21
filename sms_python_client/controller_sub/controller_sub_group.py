@@ -1,4 +1,5 @@
 import requests
+from requests_toolbelt import MultipartEncoder
 
 from sms_client import settings
 
@@ -23,3 +24,21 @@ def allocate_device_2_group(device_id, group_id, sub_user_id):
     if resp.status_code != 200:
         raise Exception(resp.status_code)
     return resp.json()
+
+def sub_upload_task(task_name, group_id, sub_user_id, file, timing_start_time, interval_time):
+    url  = settings.url_prefix +"sms/sub/task"
+    with open(file) as f:
+        m = MultipartEncoder(
+            fields={'interval_time': interval_time,
+                    'timing_start_time': timing_start_time,
+                    'sub_user_id': str(sub_user_id),
+                    "task_name":task_name,
+                    "group_id":str(group_id),
+                    'file': ('filename', f.read(), 'text/plain')}
+        )
+        resp = requests.post(url,
+                             data=m,
+                             headers={'Content-Type': m.content_type})
+    # Save Task ID
+    if resp.status_code == 200:
+        return resp.json()

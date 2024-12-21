@@ -152,8 +152,6 @@ def controller_sub_group(action):
 
 def controller_sub_sms():
     pass
-def controller_sub_sms():
-    pass
 
 cli_group.add_command(controller_main_device)
 cli_group.add_command(controller_main_project)

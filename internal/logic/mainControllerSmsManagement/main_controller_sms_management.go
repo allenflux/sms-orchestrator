@@ -111,11 +111,42 @@ func (s *sMainControllerSmsManagement) GetTaskRecordList(ctx context.Context, re
 			SmsTopic:          data[i].SmsTopic,
 			SmsContent:        data[i].SmsContent,
 			SmsStatus:         data[i].SmsStatus,
+			Reason:            data[i].Reason,
 			AssociatedAccount: data[i].AssociatedAccount,
 			ProjectName:       data[i].ProjectName,
 			StartTime:         data[i].StartTime.String(),
 			CreateTime:        data[i].CreatedAt.String(),
 		}
+	}
+	return
+}
+
+func (s *sMainControllerSmsManagement) GetConversationRecordList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error) {
+	var chatLogsId []*entity.SmsChartLog
+	var chatLogs []*entity.SmsChartLog
+	if err = dao.SmsChartLog.Ctx(ctx).Where("project_id=?", req.ProjectID).FieldMax("id", "id").Page(req.PageNum, req.PageSize).Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("Main查询SmsChartLog IDs错误")
+	}
+	idList := make([]int, len(chatLogsId))
+	for i := range chatLogsId {
+		idList[i] = chatLogsId[i].Id
+	}
+
+	if err = dao.SmsChartLog.Ctx(ctx).WhereIn("id", idList).Scan(&chatLogs); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("Main查询SmsChartLog错误")
+	}
+	data := make([]sms.ConversationRecordListResData, len(chatLogs))
+	for i := range chatLogs {
+		data[i].ChatLogID = chatLogs[i].Id
+		data[i].RecordTime = chatLogs[i].CreatedAt
+		data[i].Content = chatLogs[i].SmsContent
+		data[i].TargetPhoneNumber = chatLogs[i].TargetPhoneNumber
+		data[i].SentOrReceive = chatLogs[i].SentOrReceive
+	}
+	res = &sms.ConversationListRes{
+		Data: data,
 	}
 	return
 }
