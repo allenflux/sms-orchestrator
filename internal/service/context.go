@@ -25,13 +25,12 @@ type (
 		GetLoginUser(ctx context.Context) *model.ContextUser
 		GetUserType(ctx context.Context) consts.EnumUserType
 		GetUserClaimMap(ctx context.Context) map[string]interface{}
-		GetUserId(ctx context.Context) int64
 		GetEntUserRoleId(ctx context.Context) int64
 		GetNoticeConnMapKey(ctx context.Context) string
-		// 获取app_user_id
-		GetAppUserId(ctx context.Context) int
-		// 获取mobile
-		GetAppMobile(ctx context.Context) string
+		GetUserId(ctx context.Context) int
+		GetUsername(ctx context.Context) string
+		GetSystemId(ctx context.Context) int
+		GetPidList(ctx context.Context) []int
 	}
 )
 

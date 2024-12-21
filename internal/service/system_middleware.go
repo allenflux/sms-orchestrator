@@ -13,8 +13,6 @@ type (
 	ISystemMiddleware interface {
 		// Ctx 自定义上下文对象
 		Ctx(r *ghttp.Request)
-		// Auth 权限判断处理中间件
-		Auth(r *ghttp.Request)
 		PrintParams(r *ghttp.Request)
 		PrintAndHideError(r *ghttp.Request)
 	}

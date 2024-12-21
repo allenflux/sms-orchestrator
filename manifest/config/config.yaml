@@ -34,7 +34,7 @@ database:
     Path: "resource/log/sql"
 
   default:
-    link:   "mysql:root:Baizhe@2024@tcp(127.0.0.1:33062)/sms?charset=utf8mb4&parseTime=true&loc=Local" # 生产环境填写对应link
+    link:   "mysql:root:Baizhe@2024@tcp(127.0.0.1:3306)/sms?charset=utf8mb4&parseTime=true&loc=Local" # 生产环境填写对应link
     debug:  true
     charset: "utf8mb4" #数据库编码
     dryRun: false #空跑
@@ -51,13 +51,12 @@ gfToken:
   cacheModel: "redis"  #缓存模式 memory OR redis OR dist
   distPath: "./resource/data/distTokenDb" #使用磁盘缓存时配置数据缓存的目录
   excludePaths:
-    - "/api/v1/system/login"
-    - "/api/v1/app/register"
-    - "/api/v1/app/mobile-code"
-    - "/api/v1/app/login"
-    - "/api/v1/app/forget-password"
-    - "/api/v1/app/rate"
-    - "/api/v1/app/file/get-one"
+    - "/api/v1/allUser"
+    - "/api/v1/user"
+    - "/api/v1/subUser"
+    - "/api/v1/career"
+    - "/api/v1/role"
+    - "/api/v1/log"
 
 # Redis 配置示例
 redis:
