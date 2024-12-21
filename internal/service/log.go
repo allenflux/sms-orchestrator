@@ -8,14 +8,11 @@ package service
 import (
 	"context"
 	"sms_backend/api/v1/log"
-
-	"github.com/gogf/gf/v2/net/ghttp"
 )
 
 type (
 	ILog interface {
 		GetLogList(ctx context.Context, req *log.ListReq) (res *log.ListRes, err error)
-		CreatedLog(r *ghttp.Request)
 	}
 )
 

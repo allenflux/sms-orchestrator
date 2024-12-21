@@ -119,3 +119,8 @@ func (s *sContext) GetSystemId(ctx context.Context) int {
 	claimMap := s.GetUserClaimMap(ctx)
 	return cast.ToInt(claimMap["system_id"])
 }
+
+func (s *sContext) GetPidList(ctx context.Context) []int {
+	claimMap := s.GetUserClaimMap(ctx)
+	return cast.ToIntSlice(claimMap["permission_list"])
+}

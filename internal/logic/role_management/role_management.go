@@ -103,7 +103,7 @@ func (s *sRole) DeleteRole(ctx context.Context, req *role.DeletedReq) (res *role
 func (s *sRole) GetPermissionList(ctx context.Context, req *role.GetPermissionReq) (res *role.GetPermissionRes, err error) {
 	err = g.Try(ctx, func(ctx context.Context) {
 		var data []*entity.Permission
-		err := dao.Permission.Ctx(ctx).Scan(&data)
+		err := dao.Permission.Ctx(ctx).Where(dao.Permission.Columns().MenuType, 1).Scan(&data)
 		liberr.ErrIsNil(ctx, err)
 
 		res = &role.GetPermissionRes{List: data}

@@ -26,8 +26,11 @@ func (s *sUser) GetList(ctx context.Context, req *user.GetListReq) (res *user.Ge
 	err = g.Try(ctx, func(ctx context.Context) {
 		var info []*model.User
 		systemId := service.Context().GetSystemId(ctx)
-		orm := g.Model(info).Ctx(ctx).WithAll().Safe().Where(dao.User.Columns().SystemId, systemId)
 
+		orm := g.Model(info).Ctx(ctx).WithAll().Safe()
+		if systemId != 1 {
+			orm = orm.Where(dao.User.Columns().SystemId, systemId)
+		}
 		if req.PageNum != 0 && req.PageSize != 0 {
 			orm = orm.Page(req.PageNum, req.PageSize)
 		}
@@ -71,17 +74,17 @@ func (s *sUser) CreatedUser(ctx context.Context, req *user.RegisterReq) (res *us
 		}).Insert()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "账号管理",
-				Note:     "新增账号" + req.Username,
-			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "账号管理",
+			Note:     "新增账号" + req.Username,
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
+
 	})
 	return
 }
@@ -97,17 +100,17 @@ func (s *sUser) UpdateUser(ctx context.Context, req *user.UpdateReq) (res *user.
 		username, err := dao.User.Ctx(ctx).Fields(dao.User.Columns().Name).WherePri(req.ID).Value()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "账号管理",
-				Note:     "编辑账号" + username.String(),
-			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "账号管理",
+			Note:     "编辑账号" + username.String(),
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
+
 	})
 	return
 }
@@ -120,17 +123,16 @@ func (s *sUser) DeleteUser(ctx context.Context, req *user.DeleteReq) (res *user.
 		username, err := dao.User.Ctx(ctx).Fields(dao.User.Columns().Name).WherePri(req.ID).Value()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "账号管理",
-				Note:     "删除账号" + username.String(),
-			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "账号管理",
+			Note:     "删除账号" + username.String(),
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
 	})
 	return
 }
@@ -152,17 +154,17 @@ func (s *sUser) ChangeStatus(ctx context.Context, req *user.ChangeStatusReq) (re
 		username, err := dao.User.Ctx(ctx).Fields(dao.User.Columns().Name).WherePri(req.ID).Value()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "账号管理",
-				Note:     status + "账号" + username.String(),
-			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "账号管理",
+			Note:     status + "账号" + username.String(),
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
+
 	})
 	return
 }

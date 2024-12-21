@@ -8,6 +8,7 @@ package service
 import (
 	"context"
 	"sms_backend/api/v1/allUser"
+	"sms_backend/internal/model"
 )
 
 type (
@@ -15,6 +16,7 @@ type (
 		Login(ctx context.Context, req *allUser.LoginReq) (res *allUser.LoginRes, err error)
 		ChangePassword(ctx context.Context, req *allUser.ChangePasswordReq) (res *allUser.ChangePasswordRes, err error)
 		Logout(ctx context.Context, req *allUser.LogoutReq) (res *allUser.LogoutRes, err error)
+		UserListTree(pid int, list []*model.UserPermission) []*model.UserPermissionTree
 	}
 )
 

@@ -30,6 +30,7 @@ type (
 		GetUserId(ctx context.Context) int
 		GetUsername(ctx context.Context) string
 		GetSystemId(ctx context.Context) int
+		GetPidList(ctx context.Context) []int
 	}
 )
 

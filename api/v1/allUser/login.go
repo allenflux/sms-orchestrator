@@ -25,8 +25,9 @@ type LoginReq struct {
 
 type LoginRes struct {
 	g.Meta     `mime:"application/json"`
-	Token      string `json:"token" dc:"令牌"`
-	Permission []*model.Permission
+	Token      string                      `json:"token" dc:"令牌"`
+	Info       *model.UserInfo             `json:"info"`
+	Permission []*model.UserPermissionTree `json:"permission"`
 }
 
 type LogoutReq struct {

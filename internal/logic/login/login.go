@@ -12,10 +12,12 @@ import (
 	"sms_backend/internal/consts"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model"
+	"sms_backend/internal/model/do"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
 	"sms_backend/library/libUtils"
 	"sms_backend/library/liberr"
+	"sms_backend/utility"
 )
 
 type sLogin struct{}
@@ -43,22 +45,63 @@ func (s *sLogin) Login(ctx context.Context, req *allUser.LoginReq) (res *allUser
 		if g.Cfg().MustGet(ctx, "gfToken.multiLogin").Bool() {
 			key = gconv.String(user.Id) + "-" + gmd5.MustEncryptString(req.Username) + gmd5.MustEncryptString(user.Password+ip+userAgent)
 		}
+
+		pidArray, err := dao.RolePermission.Ctx(ctx).Fields(dao.RolePermission.Columns().PermissionId).Where("role_id = ?", user.RoleId).Array()
+		liberr.ErrIsNil(ctx, err)
+		var pidList []int
+		for _, v := range pidArray {
+			pidList = append(pidList, v.Int())
+		}
 		token, err := service.GfToken().GenerateToken(ctx, key, consts.GetUser(map[string]interface{}{
-			"user_name": req.Username,
-			"user_id":   user.Id,
-			"system_id": user.SystemId,
+			"user_name":       req.Username,
+			"user_id":         user.Id,
+			"system_id":       user.SystemId,
+			"permission_list": pidList,
 		}, consts.EnumEntUser))
 		liberr.ErrIsNil(ctx, err, "登录失败，后端服务出现错误")
 
-		var permission []*model.Permission
-		pidList, err := dao.RolePermission.Ctx(ctx).Fields("permission_id").Where("role_id", user.RoleId).Array()
+		var permission []*entity.Permission
+		err = dao.Permission.Ctx(ctx).Where("id IN(?)", pidArray).Scan(&permission)
 		liberr.ErrIsNil(ctx, err)
 
-		err = dao.Permission.Ctx(ctx).Fields("id,name,redirect").Where("id IN(?)", pidList).Scan(&permission)
+		var userPermission []*model.UserPermission
+		for _, v := range permission {
+			userPermission = append(userPermission, &model.UserPermission{
+				Id:        v.Id,
+				Pid:       v.Pid,
+				Name:      v.Name,
+				MenuType:  v.MenuType,
+				Path:      v.Path,
+				Component: v.Component,
+				Meta: model.Meta{
+					Title:    v.Title,
+					Icon:     v.Icon,
+					IsHide:   v.IsHide,
+					IsCached: v.IsCached,
+				},
+			})
+		}
+		tree := s.UserListTree(0, userPermission)
+
+		data := do.Log{
+			UserId:   user.Id,
+			UserName: req.Username,
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "用户登录",
+			Note:     req.Username + "登录到系统",
+			SystemId: user.SystemId,
+		}
+		err = utility.CreatedLog(ctx, data)
 		liberr.ErrIsNil(ctx, err)
+
 		res = &allUser.LoginRes{
 			Token:      token,
-			Permission: permission,
+			Permission: tree,
+			Info: &model.UserInfo{
+				Id:       user.Id,
+				Name:     user.Name,
+				SystemId: user.SystemId,
+			},
 		}
 	})
 	return
@@ -82,6 +125,17 @@ func (s *sLogin) ChangePassword(ctx context.Context, req *allUser.ChangePassword
 			_, err = dao.User.Ctx(ctx).Data(user).Update()
 			liberr.ErrIsNil(ctx, err)
 		}
+
+		data := do.Log{
+			UserId:   user.Id,
+			UserName: user.Name,
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "设置",
+			Note:     user.Name + "修改了密码",
+			SystemId: user.SystemId,
+		}
+		err := utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
 	})
 	return
 }
@@ -92,4 +146,18 @@ func (s *sLogin) Logout(ctx context.Context, req *allUser.LogoutReq) (res *allUs
 		liberr.ErrIsNil(ctx, err)
 	})
 	return
+}
+
+func (s *sLogin) UserListTree(pid int, list []*model.UserPermission) []*model.UserPermissionTree {
+	tree := make([]*model.UserPermissionTree, 0) // 初始化树切片
+	for _, v := range list {
+		if v.Pid == pid { // 如果当前节点的父ID与传入的pid匹配
+			node := &model.UserPermissionTree{
+				UserPermission: v, // 直接嵌套原始数据
+			}
+			node.Children = s.UserListTree(v.Id, list) // 递归查找子节点
+			tree = append(tree, node)                  // 将节点添加到树中
+		}
+	}
+	return tree
 }
