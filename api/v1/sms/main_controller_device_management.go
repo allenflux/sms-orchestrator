@@ -82,6 +82,7 @@ type DeviceListResData struct {
 	ID            int    `json:"id"`
 	ProjectID     int    `json:"project_id"`
 	DeviceNumber  string `json:"device_number"`
+	DeviceID      string `json:"device_id"`
 	Number        string `json:"number"`
 	ActiveDays    int    `json:"active_days"`
 	OwnerAccount  string `json:"owner_account"`

@@ -21,9 +21,8 @@ project_id = project_id_list[0]
 with open("./group_id.json") as f:
     group_id_list = json.loads(f.read())
 group_id = group_id_list[0]
+task_name = faker.numerify() + "-" + faker.file_name()
 
-task_name ="python-task-" + faker.word()
-group_id = 2
 def sub_upload_task():
     print("task_name:",task_name)
     print("group_id:",group_id)

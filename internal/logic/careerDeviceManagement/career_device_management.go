@@ -10,7 +10,6 @@ import (
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
 	"github.com/gogf/gf/v2/util/gconv"
-	"github.com/pquerna/ffjson/ffjson"
 	"io/ioutil"
 	"sms_backend/api/v1/career"
 	"sms_backend/api/v1/sms"
@@ -18,6 +17,7 @@ import (
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
+	"sms_backend/utility"
 	"strconv"
 )
 
@@ -78,6 +78,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	if device.GroupId == 0 {
 		return nil, errors.New("这台Device目前没有被分配到任何Group")
 	}
+	var subMessageData *sms.SubPostConversationRecordData
 
 	// 优先处理对话接口传递的任务
 	if c, err := g.Redis().LLen(ctx, req.DeviceNumber); err != nil {
@@ -85,159 +86,122 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		return nil, errors.New("从redis中获取对话任务Len错误 请优先修复")
 	} else if c > 0 {
 		g.Log().Info(ctx, "正在处理对话优先任务 ")
-		if messageData, err := g.Redis().LPop(ctx, req.DeviceNumber); err != nil {
+		//if messageData, err := g.Redis().LPop(ctx, req.DeviceNumber); err != nil {
+		if messageData, err := utility.PopWithLock(ctx, g.Redis(), req.DeviceNumber); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("LPop 从List中获取任务失败 请优先修复")
-		} else {
-			var subMessageData *sms.SubPostConversationRecordData
-			if err = messageData.Scan(&subMessageData); err != nil {
-				return nil, errors.New("从redis中获取的数据映射错误 请优先修复")
-			}
-			res = &career.FetchTaskRes{
-				TargetPhoneNumber: subMessageData.TargetPhoneNumber,
-				Content:           subMessageData.Content,
-				DeviceNumber:      subMessageData.DeviceNumber,
-				Interval:          "0",
-				TaskId:            subMessageData.TaskID,
-				StartAt:           gtime.Now(),
-			}
-			return res, nil
+		} else if err = messageData.Scan(&subMessageData); err != nil {
+			return nil, errors.New("从redis中获取的数据映射错误 请优先修复")
 		}
+		res = &career.FetchTaskRes{
+			TargetPhoneNumber: subMessageData.TargetPhoneNumber,
+			Content:           subMessageData.Content,
+			DeviceNumber:      subMessageData.DeviceNumber,
+			Interval:          "0",
+			TaskId:            subMessageData.TaskID,
+			StartAt:           gtime.Now(),
+		}
+		return res, nil
 
-	} else {
-		g.Log().Info(ctx, "无对话任务可以处理 开始处理文件任务")
 	}
+	g.Log().Info(ctx, "无对话任务可以处理 开始处理文件任务")
 
-	var jobs []*entity.SmsMissionReport
+	var job *entity.SmsMissionReport
+	c = 0
 	// 任务状态，1-待发送 2-发送中 3-已发送 4-已撤销
-	if err = dao.SmsMissionReport.Ctx(ctx).Where("group_id = ?", device.GroupId).Where("task_status = ?", 1).WhereOr("task_status = ?", 2).Limit(1).Scan(&jobs); err != nil {
+	if err = dao.SmsMissionReport.Ctx(ctx).Where("group_id = ?", device.GroupId).Where("task_status = ?", 1).WhereOr("task_status = ?", 2).Limit(1).ScanAndCount(&job, &c, false); err != nil {
 		return nil, errors.New("查询数据库Mission Report失败")
 	}
 
-	if len(jobs) == 0 {
+	if c == 0 {
 		return nil, errors.New("目前设备无可执行任务List")
 	}
 
 	var content []byte
 	// 确定需要更新的任务report 条目
-	ii := 0
-
 	// Get File
-	// todo 循环可以去掉
-	for _, job := range jobs {
-		g.Log().Infof(ctx, "读取文件中 %s", job.FileName)
-		g.Log().Infof(ctx, "fetch task <<<<< filename===%s", job.FileName)
-		if v, err := g.Redis().Do(ctx, "GET", job.FileName); err != nil {
+
+	g.Log().Infof(ctx, "读取文件中 %s", job.FileName)
+	g.Log().Infof(ctx, "fetch task <<<<< filename===%s", job.FileName)
+	if c, err := g.Redis().LLen(ctx, job.FileName); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复")
+	} else if c > 0 {
+		g.Log().Info(ctx, "正在处理文件任务 ")
+		//if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
+		if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("Redis Get Error ")
-		} else {
-			content = gconv.Bytes(v)
-			g.Log().Infof(ctx, "fetch content by redis <<<<< filename===%s", string(content))
+			return nil, errors.New("LPop 文件任务 从List中获取任务失败 请优先修复")
+		} else if err = messageData.Scan(&subMessageData); err != nil {
+			return nil, errors.New("文件任务 从redis中获取的数据映射错误 请优先修复")
 		}
-		//ii = i
-		if len(content) == 0 {
-			g.Log().Info(ctx, "从 缓存 中获取的 content 长度为0")
-			// 从文件中重新加载的数据属于新的task list【造成这种情况的原因是程序重启导致的偏差】
-			if content, err = ioutil.ReadFile(consts.TaskFilePath + "/" + job.FileName); err != nil {
+		res = &career.FetchTaskRes{
+			TargetPhoneNumber: subMessageData.TargetPhoneNumber,
+			Content:           subMessageData.Content,
+			DeviceNumber:      req.DeviceNumber,
+			Interval:          job.IntervalTime,
+			TaskId:            subMessageData.TaskID,
+			StartAt:           job.StartTime,
+		}
+	} else {
+		// 从文件中重新加载的数据属于新的task list【造成这种情况的原因是程序重启导致的偏差】
+		g.Log().Info(ctx, "未能从redis中获取到任务 开始从文件中获取")
+		if content, err = ioutil.ReadFile(consts.TaskFilePath + "/" + job.FileName); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("存储的读取文件失败")
+		}
+		var payload FileData
+		err = json.Unmarshal(content, &payload)
+		if err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("文件解析json错误")
+		}
+		if job.TaskStatus == 2 {
+			//   从db中获取已经被发送的任务
+			//	截取一部分任务添加到队列中
+			g.Log().Info(ctx, "文件🥃执行 开始从记录中恢复中")
+			index := job.SmsQuantity - job.SurplusQuantity - 1
+			if index <= 0 {
+				return nil, errors.New("程序逻辑错误")
+			}
+			payload.Content = payload.Content[index:]
+			payload.Content = payload.TargetPhoneNumber[index:]
+		}
+
+		if len(payload.Content) == 0 {
+			return nil, errors.New("最终获取的 content 长度为0 说明无可执行任务块 属于异常错误")
+		}
+		// 完成一次 pop 操作
+		res = &career.FetchTaskRes{
+			TargetPhoneNumber: payload.TargetPhoneNumber[0],
+			Content:           payload.Content[0],
+			DeviceNumber:      req.DeviceNumber,
+			Interval:          job.IntervalTime,
+			TaskId:            int64(job.Id),
+			StartAt:           job.StartTime,
+		}
+		//g.Log().Infof(ctx, "data ---- > %s", string(data))
+		// 更新后的任务块条目 将json格式的数据写入mos
+		for i := 1; i <= len(payload.TargetPhoneNumber); i++ {
+			message := sms.SubPostConversationRecordData{
+				TaskID:            int64(job.Id),
+				Content:           payload.Content[i],
+				DeviceNumber:      "",
+				TargetPhoneNumber: payload.TargetPhoneNumber[i],
+			}
+			// 生成任务队列
+			if _, err = g.Redis().LPush(ctx, job.FileName, message); err != nil {
 				g.Log().Error(ctx, err)
-				return nil, errors.New("存储的读取文件失败")
-			}
-			if job.TaskStatus == 2 {
-				//   从db中获取已经被发送的任务
-				var record []*entity.SmsMissionRecord
-				if err = dao.SmsMissionRecord.Ctx(ctx).Where("sub_task_id = ?", job.Id).Scan(record); err != nil {
-					g.Log().Error(ctx, err)
-					return nil, errors.New("查询SmsMissionRecord错误 程序健壮性错误")
-				}
-				if len(record) == 0 {
-					//	有设备领了这个task的任务没有回报 重复发送任务
-				} else {
-					//	还原文件content 直接添加，因为device num 写入 mos 是顺序数组 所以只需要根据长度就可以还原未完成的任务
-					var tpayload FileData
-					err = json.Unmarshal(content, &tpayload)
-					if err != nil {
-						g.Log().Error(ctx, err)
-						return nil, errors.New("还原cache时解析错误")
-					}
-					length := len(record)
-					for i := 0; i < length; i++ {
-						tpayload.DeviceNumber = append(tpayload.DeviceNumber, "1")
-					}
-					content, err = ffjson.Marshal(tpayload)
-					if err != nil {
-						return nil, errors.New("tpayload 文件格式转换错误")
-					}
-
-				}
-
-			}
-		} else {
-			// go out loop
-			// fetch base64
-			//g.Log().Infof(ctx, "content ------- : %s", string(content))
-			//g.Log().Infof(ctx, "content 000 : %s", string(content[0]))
-			//g.Log().Infof(ctx, "content : %v", content)
-			g.Log().Info(ctx, "go out loop")
-			break
-		}
-
-	}
-
-	g.Log().Infof(ctx, "ii = %d", ii)
-
-	if len(content) == 0 {
-		return nil, errors.New("最终获取的 content 长度为0 说明无可执行任务块 属于异常错误")
-	}
-	// Now let's unmarshall the data into `payload`
-	var payload FileData
-	err = json.Unmarshal(content, &payload)
-	if err != nil {
-		g.Log().Error(ctx, err)
-		g.Log().Infof(ctx, "content : %s", string(content))
-		return nil, errors.New("文件解析json错误")
-	}
-
-	if len(payload.Content) <= len(payload.DeviceNumber) {
-		// 当前文件无可执行任务 需要更新挑选机制 遇到这种状况的原因是有device领取了任务没有即使回报 末尾添加发送数量来限制这种情况
-		// 发放的任务可和数据库记录可能会有时间差别 确认下数据库数据
-		if jobs[ii].TaskStatus != 3 {
-			g.Log().Info(ctx, "数据库数据未即使更新 关闭此条任务窗口")
-			if _, err = dao.SmsMissionReport.Ctx(ctx).Data("task_status = ?", 3).Where("id = ?", jobs[ii].Id).Update(); err != nil {
-				g.Log().Error(ctx, err)
-				return nil, errors.New("SmsMissionReport 数据库更新检查错误")
+				return nil, errors.New("将文件内容存储到Redis 失败")
 			}
 		}
-		return nil, errors.New("文件已经被执行完 无任务可以返回")
 	}
 
-	i := len(payload.DeviceNumber)
-	g.Log().Infof(ctx, "length : %d", i)
-	res = &career.FetchTaskRes{
-		TargetPhoneNumber: payload.TargetPhoneNumber[i],
-		Content:           payload.Content[i],
-		DeviceNumber:      req.DeviceNumber,
-		Interval:          jobs[ii].IntervalTime,
-		TaskId:            jobs[ii].Id,
-		StartAt:           jobs[ii].StartTime,
-	}
+	// go out loop
+	g.Log().Info(ctx, "完成文件操作")
 
-	payload.DeviceNumber = append(payload.DeviceNumber, req.DeviceNumber)
-
-	g.Log().Infof(ctx, "before   ==== > %s", payload)
-	g.Log().Infof(ctx, "payload.DeviceNumber = %s", payload.DeviceNumber)
-	// 将结构体的格式，转为json字符串的格式。这里用的到库包是"github.com/pquerna/ffjson/ffjson"
-	data, err := json.Marshal(&payload)
-	if err != nil {
-		return nil, errors.New("文件格式转换错误")
-	}
-	//g.Log().Infof(ctx, "data ---- > %s", string(data))
-	// 更新后的任务块条目 将json格式的数据写入mos
-	if _, err = g.Redis().Do(ctx, "SET", jobs[ii].FileName, string(data)); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("redis 写入文件错误")
-	}
 	// 判断剩余短信数量
-	sq := jobs[ii].SurplusQuantity - 1
+	sq := job.SurplusQuantity - 1
 	if sq < 0 {
 		return nil, errors.New("剩余短信数量不能为小于0的数 请检查程序逻辑")
 	}
@@ -252,8 +216,8 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	}
 	g.Log().Info(ctx, "开启事务操作")
 
-	if len(payload.DeviceNumber) == len(payload.Content) {
-		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"task_status": 3, "surplus_quantity": sq}).Where("id = ?", jobs[ii].Id).Update(); err != nil {
+	if sq == 0 {
+		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"task_status": 3, "surplus_quantity": sq}).Where("id = ?", job.Id).Update(); err != nil {
 			g.Log().Error(ctx, err)
 			if err = tx.Rollback(); err != nil {
 				g.Log().Error(ctx, err)
@@ -262,7 +226,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 			return nil, errors.New("更新SmsMissionReport状态错误")
 		}
 	} else {
-		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"task_status": 2, "surplus_quantity": sq}).Where("id = ?", jobs[ii].Id).Update(); err != nil {
+		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"task_status": 2, "surplus_quantity": sq}).Where("id = ?", job.Id).Update(); err != nil {
 			g.Log().Error(ctx, err)
 			if err = tx.Rollback(); err != nil {
 				g.Log().Error(ctx, err)
@@ -294,7 +258,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		_, err = tx.Model("sms_trace_task").Ctx(ctx).Data(entity.SmsTraceTask{
 			TargetNumber: res.TargetPhoneNumber,
 			DeviceNumber: res.DeviceNumber,
-			TaskId:       res.TaskId,
+			TaskId:       int(res.TaskId),
 		}).Insert()
 
 		if err != nil {
