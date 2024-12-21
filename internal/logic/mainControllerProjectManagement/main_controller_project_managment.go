@@ -20,6 +20,32 @@ func init() {
 
 type sMainControllerProjectManagement struct{}
 
+func (s *sMainControllerProjectManagement) ProjectListListForFront(ctx context.Context, req *sms.ProjectListForFrontReq) (res *sms.ProjectListForFrontRes, err error) {
+	dbTemper := dao.ProjectList.Ctx(ctx)
+	if req.SubUserID != 0 {
+		g.Log().Info(ctx, "查询子账号下的项目信息")
+		dbTemper = dbTemper.Where("associated_account_id = ?", req.SubUserID)
+	}
+	var projects []*entity.ProjectList
+	c := 0
+	if err = dbTemper.ScanAndCount(&projects, &c, false); err != nil {
+		return nil, errors.New("DB错误 查询ProjectList错误")
+	}
+	data := make([]*sms.ProjectListForFrontResData, len(projects))
+	for i, project := range projects {
+		data[i] = &sms.ProjectListForFrontResData{
+			ProjectName: project.ProjectName,
+			ProjectId:   project.Id,
+		}
+	}
+
+	res = &sms.ProjectListForFrontRes{
+		Data: data,
+	}
+
+	return
+}
+
 // Project List
 
 func (s *sMainControllerProjectManagement) ProjectList(ctx context.Context, req *sms.ProjectListReq) (res *sms.ProjectListRes, err error) {

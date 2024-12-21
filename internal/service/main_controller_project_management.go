@@ -12,6 +12,7 @@ import (
 
 type (
 	IMainControllerProjectManagement interface {
+		ProjectListListForFront(ctx context.Context, req *sms.ProjectListForFrontReq) (res *sms.ProjectListForFrontRes, err error)
 		ProjectList(ctx context.Context, req *sms.ProjectListReq) (res *sms.ProjectListRes, err error)
 		CreateProject(ctx context.Context, req *sms.ProjectCreateReq) (res *sms.ProjectCreateRes, err error)
 		DeleteProject(ctx context.Context, req *sms.ProjectDeleteReq) (res *sms.ProjectDeleteRes, err error)

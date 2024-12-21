@@ -27,6 +27,18 @@ type ProjectListRes struct {
 	commonApi.ListRes
 }
 
+type ProjectListForFrontReq struct {
+	g.Meta    `path:"/project/items" tags:"项目管理" method:"get" dc:"查询项目列表 给前端作为筛选条件使用" `
+	SubUserID int `json:"sub_user_id" default:"0" dc:"这个字段在子平台查询时使用 如果传递此字段 将返回子平台下的项目 总平台不用传递"`
+}
+type ProjectListForFrontResData struct {
+	ProjectName string `json:"project_name"`
+	ProjectId   int    `json:"project_id"`
+}
+type ProjectListForFrontRes struct {
+	Data []*ProjectListForFrontResData `json:"data"`
+}
+
 type ProjectCreateReq struct {
 	g.Meta      `path:"/project" tags:"项目管理" method:"post" dc:"新增项目" `
 	ProjectName string `json:"project_name" v:"required"`
@@ -63,6 +75,7 @@ type DeviceListReq struct {
 	SentStatus      int      `json:"sent_status" dc:"需要查询的设备状态" default:"0" dc:"发送状态，1-异常 2-占用 3-空闲"`
 	TaskName        string   `json:"task_name" dc:"任务名称"`
 	Number          string   `json:"number" dc:"设备号码"`
+	DeviceID        string   `json:"device_id" dc:"设备标识"`
 	DeviceNumber    string   `json:"device_number" dc:"设备序列号"`
 }
 type DeviceListResData struct {
