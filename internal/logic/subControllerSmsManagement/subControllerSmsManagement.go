@@ -195,9 +195,13 @@ func (s *sSubControllerSmsManagement) TaskReportDelete(ctx context.Context, req 
 
 func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Context, req *sms.SubGetConversationRecordReq) (res *sms.SubGetConversationRecordRes, err error) {
 	var chatLog entity.SmsChartLog
-	if err = dao.SmsChartLog.Ctx(ctx).Where("id = ?", req.ChatLogID).Scan(&chatLog); err != nil {
+	c := 0
+	if err = dao.SmsChartLog.Ctx(ctx).Where("id = ?", req.ChatLogID).ScanAndCount(&chatLog, &c, false); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("查询 DB SmsChartLog 错误")
+	}
+	if c == 0 {
+		return nil, errors.New("错误的ChatLogID")
 	}
 	//if chatLog.AssociatedAccountId != req.SubUserID {
 	//	return nil, errors.New("sub user id 验证错误")
