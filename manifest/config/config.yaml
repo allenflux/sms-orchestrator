@@ -34,7 +34,7 @@ database:
     Path: "resource/log/sql"
 
   default:
-    link:   "mysql:root:Baizhe@2024@tcp(127.0.0.1:3306)/sms?charset=utf8mb4&parseTime=true&loc=Local" # 生产环境填写对应link
+    link:   "mysql:root:Baizhe@2024@tcp(127.0.0.1:33062)/sms?charset=utf8mb4&parseTime=true&loc=Local" # 生产环境填写对应link
     debug:  true
     charset: "utf8mb4" #数据库编码
     dryRun: false #空跑
