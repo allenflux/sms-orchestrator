@@ -9,9 +9,9 @@ import (
 
 type SubRegisterReq struct {
 	g.Meta   `path:"/register" tags:"子账号后台(admin)" method:"post" sm:"添加子账号"`
-	Username string                 `json:"username" v:"passport" dc:"用户名"`
+	Name     string                 `json:"name" v:"passport" dc:"用户名"`
 	Password string                 `json:"password" v:"password" dc:"密码"`
-	Project  []int                  `json:"project" v:"required" dc:"项目id，不分配则提交空数组"`
+	Project  []int                  `json:"project" dc:"项目id，不分配则提交空数组"`
 	Status   consts.EnumsUserStatus `json:"status" v:"enums" dc:"状态,1-停用 2-启用"`
 	Note     string                 `json:"note" dc:"备注"`
 }
