@@ -6,7 +6,6 @@
 .idea/
 .settings/
 .vscode/
-./sms_python_client
 bin/
 **/.DS_Store
 gf
@@ -20,3 +19,4 @@ bin
 **/config/config.yaml
 resource/log
 /sms_python_client/
+/moss/
