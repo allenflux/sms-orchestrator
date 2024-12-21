@@ -6,17 +6,10 @@ fake = Faker()
 prefix = "python_test_device_"
 
 def generate_device_num(num = 20):
-    filter_num = dict()
     res_list = []
     for i in range(num):
-        while True:
-            no = random.randint(100, 999)
-            if no in filter_num:
-                pass
-            else:
-                filter_num[no] = 1
-                res_list.append(prefix +fake.file_name()+ str(no))
-                break
+        res = fake.numerify() +"-"+ fake.first_name()
+        res_list.append(res)
     return res_list
 
 
@@ -24,6 +17,6 @@ def generate_device_num(num = 20):
 if __name__ == "__main__":
     res_list = generate_device_num()
     print(res_list)
-    with open("device_num.json", "w") as f:
+    with open("device_num_2.json", "w") as f:
         json.dump(res_list, f)
 

@@ -5,7 +5,7 @@ from faker import Faker
 
 import url
 
-fake = Faker()
+fake = Faker(locale='en_US')
 
 # create_group_url = "http://192.168.1.14:8822/api/v1/sms/sub/group"
 create_group_url = url.url_prefix +"sms/sub/group"
@@ -18,7 +18,8 @@ def create_group():
     filter_m = {}
     for i in range(20):
         while True:
-            random_name = "Python-Group-"+ fake.first_name() + "-" + str(i)
+            random_name = fake.numerify() + "-" + fake.ascii_company_email()
+            print(random_name)
             if random_name not in filter_m:
                 filter_m[random_name] = 1
                 break

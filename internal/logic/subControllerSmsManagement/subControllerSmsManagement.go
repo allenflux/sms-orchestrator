@@ -131,13 +131,10 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 		return nil, errors.New("文件格式错误")
 	}
 
-	//将文件存储到 Redis DB
-	g.Log().Infof(ctx, "filename===%s", filename)
-
-	if _, err = g.Redis().Do(ctx, "SET", filename, string(content)); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("将文件内容存储到Redis 失败")
-	}
+	//if _, err = g.Redis().Do(ctx, "SET", filename, string(content)); err != nil {
+	//	g.Log().Error(ctx, err)
+	//	return nil, errors.New("将文件内容存储到Redis 失败")
+	//}
 
 	data := entity.SmsMissionReport{
 		ProjectId:       group.ProjectId,
@@ -163,6 +160,23 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 	}
 	res = &sms.SubTaskCreateRes{
 		ID: mrID,
+	}
+
+	//将文件存储到 Redis DB
+	g.Log().Infof(ctx, "filename===%s", filename)
+
+	for i := range payload.TargetPhoneNumber {
+		message := sms.SubPostConversationRecordData{
+			TaskID:            mrID,
+			Content:           payload.Content[i],
+			DeviceNumber:      "",
+			TargetPhoneNumber: payload.TargetPhoneNumber[i],
+		}
+		// 生成任务队列
+		if _, err = g.Redis().LPush(ctx, filename, message); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("将文件内容存储到Redis 失败")
+		}
 	}
 	return
 
@@ -337,7 +351,7 @@ func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context
 	// 生成任务信息
 	// {TargetPhoneNumber: ... DeviceNumber: ... Content: ... TaskID ...}
 	message := sms.SubPostConversationRecordData{
-		TaskID:            chartLog.TaskId,
+		TaskID:            int64(chartLog.TaskId),
 		Content:           req.Content,
 		DeviceNumber:      chartLog.DeviceNumber,
 		TargetPhoneNumber: chartLog.TargetPhoneNumber,

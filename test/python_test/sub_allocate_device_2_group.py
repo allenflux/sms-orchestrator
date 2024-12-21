@@ -9,7 +9,7 @@ allocate_device_2_group_url = url.url_prefix +"sms/sub/device/group"
 test_sub_user_id = 886
 
 def auto_allocate_device_2_group():
-    with open("device_id_list.json") as f:
+    with open("device_id_list_2.json") as f:
         device_id_list = json.load(f)
     with open("group_id.json") as f:
         group_id_list = json.load(f)
@@ -21,4 +21,5 @@ def allocate_device_2_group(device_id_list, group_id):
     print(resp.json())
 
 if __name__ == '__main__':
-    allocate_device_2_group([63], 2)
+    auto_allocate_device_2_group()
+    # allocate_device_2_group([63], 2)

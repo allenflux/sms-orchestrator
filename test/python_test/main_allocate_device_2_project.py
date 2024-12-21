@@ -9,7 +9,7 @@ allocate_device_2_project_url = url.url_prefix +"sms/device/project"
 
 def auto_allocate_device_2_project():
     url = allocate_device_2_project_url
-    with open("./device_id_list.json") as f:
+    with open("./device_id_list_2.json") as f:
         device_id_list = json.load(f)
     with open("./project_id_list.json") as f:
         project_id_list = json.load(f)
@@ -24,4 +24,4 @@ def allocate_device_2_project(device_id_list, project_id_list):
     print(resp.json())
 
 if __name__ == '__main__':
-    allocate_device_2_project([11111], [20000])
+    auto_allocate_device_2_project()

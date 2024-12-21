@@ -38,7 +38,7 @@ type FetchTaskRes struct {
 	Content           string      `json:"content"`
 	DeviceNumber      string      `json:"device_number" dc:"有时为空 若不为空则需要使用特定设备发送此条信息"`
 	Interval          string      `json:"interval"`
-	TaskId            int         `json:"task_id"`
+	TaskId            int64       `json:"task_id"`
 	StartAt           *gtime.Time `json:"start_at"`
 }
 

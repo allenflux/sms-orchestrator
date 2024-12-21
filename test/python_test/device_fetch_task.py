@@ -14,7 +14,7 @@ with open("./device_num.json") as f:
 
 def device_fetch_task():
     result_list = []
-    for device_no in range(200):
+    for device_no in range(20):
         print("start ",time.time())
         resp = requests.post(device_fetch_task_url, json={"device_number": random.choice(device_num_list)})
         # resp = requests.post(device_fetch_task_url, json={"device_number": "python_test_device_seat.jpg523"})
@@ -24,29 +24,27 @@ def device_fetch_task():
         json.dump(result_list, f)
 
 async def async_device_fetch_task():
-    print("start ", time.time())
-    await async_request_task()
-
-async def async_request_task():
-    resp = requests.post(device_fetch_task_url, json={"device_number": "3184312941"})
-    # resp = requests.post(device_fetch_task_url, json={"device_number": "python_test_device_seat.jpg523"})
+    resp = requests.post(device_fetch_task_url, json={"device_number": random.choice(device_num_list)})
     print(resp.json())
 
+
+
 if __name__ == '__main__':
-    # device_fetch_task()
-    start = time.time()
+    device_fetch_task()
 
-    loop = asyncio.new_event_loop()
-    tasks = [
-        # loop.create_task(sum("A", [1, 2])),
-        # loop.create_task(sum("B", [1, 2, 3])),
-    ]
-    for device_no in range(2):
-        a = loop.create_task(async_device_fetch_task())
-        tasks.append(a)
-    loop.run_until_complete(asyncio.wait(tasks))
-    loop.close()
-
-    end = time.time()
-    print(f'Time: {end - start:.2f} sec')
+    # start = time.time()
+    #
+    # loop = asyncio.new_event_loop()
+    # tasks = [
+    #     # loop.create_task(sum("A", [1, 2])),
+    #     # loop.create_task(sum("B", [1, 2, 3])),
+    # ]
+    # for device_no in range(200):
+    #     a = loop.create_task(async_device_fetch_task())
+    #     tasks.append(a)
+    # loop.run_until_complete(asyncio.wait(tasks))
+    # loop.close()
+    #
+    # end = time.time()
+    # print(f'Time: {end - start:.2f} sec')
 

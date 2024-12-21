@@ -20,4 +20,4 @@ def allocate_sub_account_2_project(project_id):
     print(resp.json())
 
 if __name__ == '__main__':
-    allocate_sub_account_2_project(2000000)
+    auto_allocate_sub_account_2_project()
