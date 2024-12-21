@@ -49,6 +49,7 @@ type IV1Role interface {
 
 type IV1Sms interface {
 	ProjectList(ctx context.Context, req *sms.ProjectListReq) (res *sms.ProjectListRes, err error)
+	ProjectListForFront(ctx context.Context, req *sms.ProjectListForFrontReq) (res *sms.ProjectListForFrontRes, err error)
 	ProjectCreate(ctx context.Context, req *sms.ProjectCreateReq) (res *sms.ProjectCreateRes, err error)
 	ProjectUpdate(ctx context.Context, req *sms.ProjectUpdateReq) (res *sms.ProjectUpdateRes, err error)
 	ProjectDelete(ctx context.Context, req *sms.ProjectDeleteReq) (res *sms.ProjectDeleteRes, err error)
