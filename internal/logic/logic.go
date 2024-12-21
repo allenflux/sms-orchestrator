@@ -16,6 +16,8 @@ import (
 	_ "sms_backend/internal/logic/subControllerDeviceManagement"
 	_ "sms_backend/internal/logic/subControllerSmsManagement"
 	_ "sms_backend/internal/logic/subUserManagement"
+	_ "sms_backend/internal/logic/sysUser"
+	_ "sms_backend/internal/logic/systemMiddleware"
 	_ "sms_backend/internal/logic/token"
 	_ "sms_backend/internal/logic/user_management"
 )

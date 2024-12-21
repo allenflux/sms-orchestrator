@@ -9,22 +9,22 @@ import (
 )
 
 func DBUpgrade(ctx context.Context) {
-	addTableDeviceList(ctx)
-	addTableProjectList(ctx)
-	addTableSubGroup(ctx)
-	addTableSmsMissionReport(ctx)
-	addTableSmsMissionRecord(ctx)
-	addTableSmsChartLog(ctx)
-	addTableUser(ctx)
-	addDataToUser(ctx)
-	addTableUserProject(ctx)
-	addTableRole(ctx)
-	addDataToRole(ctx)
-	addTablePermission(ctx)
-	addDataToPermission(ctx)
-	addTableRolePermission(ctx)
-	addDataToRolePermission(ctx)
-	addTableLog(ctx)
+	//addTableDeviceList(ctx)
+	//addTableProjectList(ctx)
+	//addTableSubGroup(ctx)
+	//addTableSmsMissionReport(ctx)
+	//addTableSmsMissionRecord(ctx)
+	//addTableSmsChartLog(ctx)
+	//addTableUser(ctx)
+	//addDataToUser(ctx)
+	//addTableUserProject(ctx)
+	//addTableRole(ctx)
+	//addDataToRole(ctx)
+	//addTablePermission(ctx)
+	//addDataToPermission(ctx)
+	//addTableRolePermission(ctx)
+	//addDataToRolePermission(ctx)
+	//addTableLog(ctx)
 }
 
 func addTableDeviceList(ctx context.Context) {
@@ -150,7 +150,7 @@ func addDataToUser(ctx context.Context) {
 		password := libUtils.EncryptPassword("123456", salt)
 		_, err = g.DB().Model("user").Ctx(ctx).Data(g.Map{
 			"id":        1,
-			"name":      "admin1",
+			"name":      "surper",
 			"password":  password,
 			"salt":      salt,
 			"status":    2,

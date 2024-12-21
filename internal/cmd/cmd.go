@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/os/gcmd"
 	"github.com/gogf/gf/v2/util/gmode"
 	v1 "sms_backend/internal/controller/v1"
+	"sms_backend/internal/service"
 	"sms_backend/library/libOss"
 )
 
@@ -33,7 +34,7 @@ var (
 			//})
 			apiServer.Group("/api/v1/sms", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
-				//service.SysUser().CheckLogin,
+				//
 				//service.SystemMiddleware().PrintAndHideError, service.SystemMiddleware().Ctx, service.SystemMiddleware().Auth, service.SystemMiddleware().PrintParams)
 				group.Bind(
 					v1.NewSms(),
@@ -42,7 +43,7 @@ var (
 
 			apiServer.Group("/api/v1/career", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
-				//service.SysUser().CheckLogin,
+				//
 				//service.SystemMiddleware().PrintAndHideError, service.SystemMiddleware().Ctx, service.SystemMiddleware().Auth, service.SystemMiddleware().PrintParams)
 				group.Bind(
 					v1.NewCareer(),
@@ -50,14 +51,26 @@ var (
 			})
 
 			apiServer.Group("/api/v1/user", func(group *ghttp.RouterGroup) {
-				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Middleware(
+					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
+					service.SysUser().CheckLogin,
+					service.SystemMiddleware().Ctx,
+					service.SysUser().CheckUserAuth,
+					service.SystemMiddleware().PrintAndHideError,
+				)
 				group.Bind(
 					v1.NewUser(),
 				)
 			})
 
 			apiServer.Group("/api/v1/sub-user", func(group *ghttp.RouterGroup) {
-				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Middleware(
+					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
+					service.SysUser().CheckLogin,
+					service.SystemMiddleware().Ctx,
+					service.SysUser().CheckSubUserAuth,
+					service.SystemMiddleware().PrintAndHideError,
+				)
 				group.Bind(
 					v1.NewSubUser(),
 				)
@@ -71,17 +84,25 @@ var (
 			})
 
 			apiServer.Group("/api/v1/role", func(group *ghttp.RouterGroup) {
-				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
-				group.Bind(
-					v1.NewRole(),
+				group.Middleware(
+					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
+					service.SysUser().CheckLogin,
+					service.SystemMiddleware().Ctx,
+					service.SysUser().CheckRoleAuth,
+					service.SystemMiddleware().PrintAndHideError,
 				)
+				group.Bind(v1.NewRole())
 			})
 
 			apiServer.Group("/api/v1/log", func(group *ghttp.RouterGroup) {
-				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
-				group.Bind(
-					v1.NewLog(),
+				group.Middleware(
+					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
+					service.SysUser().CheckLogin,
+					service.SystemMiddleware().Ctx,
+					service.SysUser().CheckLogAuth,
+					service.SystemMiddleware().PrintAndHideError,
 				)
+				group.Bind(v1.NewLog())
 			})
 			apiServer.Run()
 			return nil

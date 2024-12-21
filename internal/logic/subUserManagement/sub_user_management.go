@@ -20,6 +20,8 @@ type sSubUser struct{}
 
 func New() *sSubUser { return &sSubUser{} }
 
+func init() { service.RegisterSubUser(New()) }
+
 func (s *sSubUser) GetList(ctx context.Context, req *subUser.SubGetListReq) (res *subUser.SubGetListRes, err error) {
 	err = g.Try(ctx, func(ctx context.Context) {
 		var info []*model.SubUser
@@ -48,11 +50,12 @@ func (s *sSubUser) GetList(ctx context.Context, req *subUser.SubGetListReq) (res
 
 func (s *sSubUser) CreatedSubUser(ctx context.Context, req *subUser.SubRegisterReq) (res *subUser.SubRegisterRes, err error) {
 	err = g.Try(ctx, func(ctx context.Context) {
+		g.Dump(req)
 		orm := dao.User.Ctx(ctx)
 		maxSystemId, err := orm.Fields("MAX(system_id)").Value()
 		liberr.ErrIsNil(ctx, err)
 
-		exist, err := orm.Where(dao.User.Columns().Name, req.Username).Exist()
+		exist, err := orm.Where(dao.User.Columns().Name, req.Name).Exist()
 		liberr.ErrIsNil(ctx, err)
 		if exist {
 			liberr.ErrIsNil(ctx, errors.New("该用户名已被注册"))
@@ -60,28 +63,36 @@ func (s *sSubUser) CreatedSubUser(ctx context.Context, req *subUser.SubRegisterR
 
 		salt := grand.Letters(10)
 		password := libUtils.EncryptPassword(req.Password, salt)
-		_, err = orm.Data(do.User{
-			Name:     req.Username,
+		subUserId, err := orm.Data(do.User{
+			Name:     req.Name,
 			Password: password,
 			Salt:     salt,
 			Status:   req.Status,
 			RoleId:   2,
 			SystemId: maxSystemId.Int() + 1,
 			Note:     req.Note,
-		}).Insert()
+		}).InsertAndGetId()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "子账号后台",
-				Note:     "添加子账号" + req.Username,
+		if len(req.Project) > 0 {
+			for _, v := range req.Project {
+				_, err = dao.ProjectList.Ctx(ctx).Data(do.ProjectList{
+					AssociatedAccountId: int(subUserId),
+				}).WherePri(v).Update()
+				liberr.ErrIsNil(ctx, err)
 			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		}
+
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "子账号后台",
+			Note:     "添加子账号" + req.Name,
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
 	})
 	return
 }
@@ -95,17 +106,25 @@ func (s *sSubUser) UpdateSubUser(ctx context.Context, req *subUser.SubUpdateReq)
 		username, err := orm.Fields(dao.User.Columns().Name).WherePri(req.ID).Value()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "子账号后台",
-				Note:     "修改子账号" + username.String(),
+		if len(req.Project) > 0 {
+			for _, v := range req.Project {
+				_, err = dao.ProjectList.Ctx(ctx).Data(do.ProjectList{
+					AssociatedAccountId: req.ID,
+				}).WherePri(v).Update()
+				liberr.ErrIsNil(ctx, err)
 			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		}
+
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "子账号后台",
+			Note:     "修改子账号" + username.String(),
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
 	})
 	return
 }
@@ -128,17 +147,16 @@ func (s *sSubUser) ChangeStatus(ctx context.Context, req *subUser.SubChangeStatu
 		username, err := orm.Fields(dao.User.Columns().Name).WherePri(req.ID).Value()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "子账号后台",
-				Note:     status + "子账号" + username.String(),
-			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "子账号后台",
+			Note:     status + "子账号" + username.String(),
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
 	})
 	return
 }
@@ -151,17 +169,16 @@ func (s *sSubUser) DeleteSubUser(ctx context.Context, req *subUser.SubDeleteReq)
 		username, err := dao.User.Ctx(ctx).Fields(dao.User.Columns().Name).WherePri(req.ID).Value()
 		liberr.ErrIsNil(ctx, err)
 
-		go func() {
-			data := do.Log{
-				UserId:   service.Context().GetUserId(ctx),
-				UserName: service.Context().GetUsername(ctx),
-				ClientIp: libUtils.GetClientIp(ctx),
-				Function: "子账号后台",
-				Note:     "删除子账号" + username.String(),
-			}
-			err := utility.CreatedLog(ctx, data)
-			liberr.ErrIsNil(ctx, err)
-		}()
+		data := do.Log{
+			UserId:   service.Context().GetUserId(ctx),
+			UserName: service.Context().GetUsername(ctx),
+			ClientIp: libUtils.GetClientIp(ctx),
+			Function: "子账号后台",
+			Note:     "删除子账号" + username.String(),
+			SystemId: service.Context().GetSystemId(ctx),
+		}
+		err = utility.CreatedLog(ctx, data)
+		liberr.ErrIsNil(ctx, err)
 	})
 	return
 }

@@ -2,11 +2,11 @@ package utility
 
 import (
 	"context"
-	"sms_backend/internal/dao"
+	"github.com/gogf/gf/v2/frame/g"
 	"sms_backend/internal/model/do"
 )
 
 func CreatedLog(ctx context.Context, data do.Log) (err error) {
-	_, err = dao.Log.Ctx(ctx).Data(data).Insert()
+	_, err = g.DB().Model("log").Ctx(ctx).Data(data).Insert()
 	return err
 }
