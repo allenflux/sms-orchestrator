@@ -25,8 +25,8 @@ func Unlock(ctx context.Context, redis *gredis.Redis, lockKey string) error {
 }
 
 func PopWithLock(ctx context.Context, redis *gredis.Redis, listKey string) (result *gvar.Var, err error) {
-	lockKey := "task_queue_lock" // 锁的键
-	lockTTL := 5 * time.Second   // 锁的过期时间
+	lockKey := "task_queue_lock" + listKey // 锁的键
+	lockTTL := 5 * time.Second             // 锁的过期时间
 	// 尝试获取锁
 	locked, err := TryLock(ctx, redis, lockKey, lockTTL)
 	if err != nil {

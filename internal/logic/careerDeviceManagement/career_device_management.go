@@ -83,13 +83,13 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	// 优先处理对话接口传递的任务
 	if c, err := g.Redis().LLen(ctx, req.DeviceNumber); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("从redis中获取对话任务Len错误 请优先修复")
+		return nil, errors.New("从redis中获取对话任务Len错误 请优先修复" + err.Error())
 	} else if c > 0 {
 		g.Log().Info(ctx, "正在处理对话优先任务 ")
 		//if messageData, err := g.Redis().LPop(ctx, req.DeviceNumber); err != nil {
 		if messageData, err := utility.PopWithLock(ctx, g.Redis(), req.DeviceNumber); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("LPop 从List中获取任务失败 请优先修复")
+			return nil, errors.New("LPop 从List中获取任务失败 请优先修复" + err.Error())
 		} else if err = messageData.Scan(&subMessageData); err != nil {
 			return nil, errors.New("从redis中获取的数据映射错误 请优先修复")
 		}
@@ -125,13 +125,13 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	g.Log().Infof(ctx, "fetch task <<<<< filename===%s", job.FileName)
 	if c, err := g.Redis().LLen(ctx, job.FileName); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复")
+		return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复" + err.Error())
 	} else if c > 0 {
 		g.Log().Info(ctx, "正在处理文件任务 ")
 		//if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
 		if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("LPop 文件任务 从List中获取任务失败 请优先修复")
+			return nil, errors.New("LPop 文件任务 从List中获取任务失败 请优先修复" + err.Error())
 		} else if err = messageData.Scan(&subMessageData); err != nil {
 			return nil, errors.New("文件任务 从redis中获取的数据映射错误 请优先修复")
 		}
@@ -159,7 +159,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		if job.TaskStatus == 2 {
 			//   从db中获取已经被发送的任务
 			//	截取一部分任务添加到队列中
-			g.Log().Info(ctx, "文件🥃执行 开始从记录中恢复中")
+			g.Log().Info(ctx, "文件执行 开始从记录中恢复中")
 			index := job.SmsQuantity - job.SurplusQuantity - 1
 			if index <= 0 {
 				return nil, errors.New("程序逻辑错误")
