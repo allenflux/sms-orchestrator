@@ -64,7 +64,7 @@ type FileData struct {
 }
 
 func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.FetchTaskReq) (res *career.FetchTaskRes, err error) {
-	// todo 限制下device获取任务的次数 每太设备最多可以获取1条任务 上一条任务如果没有提交发送报告则不能再次获取
+
 	var device entity.DeviceList
 	c := 0
 	if err = dao.DeviceList.Ctx(ctx).Where("device_number = ?", req.DeviceNumber).ScanAndCount(&device, &c, false); err != nil {
@@ -74,7 +74,6 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	if c == 0 {
 		return nil, errors.New("未查询到device信息")
 	}
-
 	if device.GroupId == 0 {
 		return nil, errors.New("这台Device目前没有被分配到任何Group")
 	}
@@ -123,13 +122,17 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 
 	g.Log().Infof(ctx, "读取文件中 %s", job.FileName)
 	g.Log().Infof(ctx, "fetch task <<<<< filename===%s", job.FileName)
+
+	rq := utility.NewRedisQueue(job.FileName, utility.LockKey, utility.LockTTL)
+
 	if c, err := g.Redis().LLen(ctx, job.FileName); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复" + err.Error())
 	} else if c > 0 {
 		g.Log().Info(ctx, "正在处理文件任务 ")
 		//if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
-		if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
+		//if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
+		if messageData, err := rq.Pop(ctx, g.Redis()); err != nil {
 			g.Log().Error(ctx, err)
 			return nil, errors.New("LPop 文件任务 从List中获取任务失败 请优先修复" + err.Error())
 		} else if err = messageData.Scan(&subMessageData); err != nil {
