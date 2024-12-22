@@ -72,7 +72,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		return nil, errors.New("获取group id失败")
 	}
 	if c == 0 {
-		return nil, errors.New("未查询到device信息")
+		return nil, errors.New("未查询到device信息" + req.DeviceNumber)
 	}
 	if device.GroupId == 0 {
 		return nil, errors.New("这台Device目前没有被分配到任何Group")
@@ -82,13 +82,13 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	// 优先处理对话接口传递的任务
 	if c, err := g.Redis().LLen(ctx, req.DeviceNumber); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("从redis中获取对话任务Len错误 请优先修复" + err.Error())
+		return nil, errors.New("从redis中获取对话任务Len错误 " + err.Error())
 	} else if c > 0 {
 		g.Log().Info(ctx, "正在处理对话优先任务 ")
-		//if messageData, err := g.Redis().LPop(ctx, req.DeviceNumber); err != nil {
-		if messageData, err := utility.PopWithLock(ctx, g.Redis(), req.DeviceNumber); err != nil {
+		if messageData, err := g.Redis().LPop(ctx, req.DeviceNumber); err != nil {
+			//if messageData, err := utility.PopWithLock(ctx, g.Redis(), req.DeviceNumber); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("LPop 从List中获取任务失败 请优先修复" + err.Error())
+			return nil, errors.New("LPop 从List中获取任务失败" + err.Error())
 		} else if err = messageData.Scan(&subMessageData); err != nil {
 			return nil, errors.New("从redis中获取的数据映射错误 请优先修复")
 		}
@@ -113,7 +113,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	}
 
 	if c == 0 {
-		return nil, errors.New("目前设备无可执行任务List")
+		return nil, errors.New("目前设备无可执行任务List :" + req.DeviceNumber)
 	}
 
 	var content []byte
@@ -123,20 +123,21 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	g.Log().Infof(ctx, "读取文件中 %s", job.FileName)
 	g.Log().Infof(ctx, "fetch task <<<<< filename===%s", job.FileName)
 
-	rq := utility.NewRedisQueue(job.FileName, utility.LockKey, utility.LockTTL)
+	//rq := utility.NewRedisQueue(job.FileName, utility.LockKey, utility.LockTTL)
 
 	if c, err := g.Redis().LLen(ctx, job.FileName); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复" + err.Error())
 	} else if c > 0 {
 		g.Log().Info(ctx, "正在处理文件任务 ")
-		//if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
-		//if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
-		if messageData, err := rq.Pop(ctx, g.Redis()); err != nil {
+		if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
+			//if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
+			//if messageData, err := rq.Pop(ctx, g.Redis()); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("LPop 文件任务 从List中获取任务失败 请优先修复" + err.Error())
+			return nil, errors.New("LPop 文件任务 从List中获取任务失败 加锁失败" + err.Error())
 		} else if err = messageData.Scan(&subMessageData); err != nil {
-			return nil, errors.New("文件任务 从redis中获取的数据映射错误 请优先修复")
+			g.Log().Error(ctx, err)
+			return nil, errors.New("文件任务 从redis中获取的数据映射错误" + err.Error())
 		}
 		res = &career.FetchTaskRes{
 			TargetPhoneNumber: subMessageData.TargetPhoneNumber,
@@ -146,8 +147,13 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 			TaskId:            subMessageData.TaskID,
 			StartAt:           job.StartTime,
 		}
-	} else {
+	} else if ok, err := utility.KeyExists(ctx, g.Redis(), job.FileName); ok == false {
+		if err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("utility.KeyExists Error " + err.Error())
+		}
 		// 从文件中重新加载的数据属于新的task list【造成这种情况的原因是程序重启导致的偏差】
+		g.Log().Error(ctx, "检查redis的key不存在 开始从文件中获取")
 		g.Log().Info(ctx, "未能从redis中获取到任务 开始从文件中获取")
 		if content, err = ioutil.ReadFile(consts.TaskFilePath + "/" + job.FileName); err != nil {
 			g.Log().Error(ctx, err)

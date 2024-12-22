@@ -53,7 +53,7 @@ func PopWithLock(ctx context.Context, redis *gredis.Redis, listKey string) (resu
 	}
 
 	if result.IsNil() {
-		return nil, nil // 队列为空
+		return nil, gerror.New("Queue IS Empty") // 队列为空
 	}
 
 	return result, nil
@@ -109,4 +109,17 @@ func (q *RedisQueue) Pop(ctx context.Context, redis *gredis.Redis) (result *gvar
 
 	// 返回任务数据
 	return result, nil
+}
+
+// KeyExists 判断 Redis 中某个 Key 是否存在
+func KeyExists(ctx context.Context, redis *gredis.Redis, key string) (bool, error) {
+	result, err := redis.Do(ctx, "EXISTS", key)
+	if err != nil {
+		return false, fmt.Errorf("failed to check if key exists: %v", err)
+	}
+
+	// Redis `EXISTS` 返回一个整数，1 表示存在，0 表示不存在
+	count := result.Int()
+
+	return count > 0, nil
 }

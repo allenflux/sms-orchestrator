@@ -125,7 +125,13 @@ func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Con
 			return nil, errors.New("当前Device {" + dl.DeviceNumber + "} 已经被分配 请重新选择")
 		}
 
-		if _, err = tx.Model("device_list").Ctx(ctx).Data(g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
+		// 检查当前项目是否被分配给子账户 如果已分配 那么将设备中的子账户信息也更新
+		data := g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}
+		if project.AssociatedAccountId != 0 {
+			data = g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id, "owner_account": project.AssociatedAccount, "owner_account_id": project.AssociatedAccountId}
+		}
+
+		if _, err = tx.Model("device_list").Ctx(ctx).Data(data).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
 			g.Log().Error(ctx, err)
 			if err = tx.Rollback(); err != nil {
 				g.Log().Error(ctx, err)
