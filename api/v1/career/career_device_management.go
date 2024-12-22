@@ -59,7 +59,7 @@ type ReportTaskResultReq struct {
 	StartTime         *gtime.Time `json:"start_time" v:"required"`
 }
 type ReportTaskResultRes struct {
-	ID int64 `json:"id"`
+	//ID int64 `json:"id"`
 }
 
 // Report Receive Content
