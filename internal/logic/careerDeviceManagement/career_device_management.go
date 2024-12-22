@@ -124,34 +124,38 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	g.Log().Infof(ctx, "fetch task <<<<< filename===%s", job.FileName)
 
 	//rq := utility.NewRedisQueue(job.FileName, utility.LockKey, utility.LockTTL)
-
-	if c, err := g.Redis().LLen(ctx, job.FileName); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复" + err.Error())
-	} else if c > 0 {
-		g.Log().Info(ctx, "正在处理文件任务 ")
-		if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
-			//if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
-			//if messageData, err := rq.Pop(ctx, g.Redis()); err != nil {
+	if ok, err := utility.KeyExists(ctx, g.Redis(), job.FileName); err != nil {
+		return nil, errors.New("utility.KeyExists Error" + err.Error())
+	} else if ok {
+		if c, err := g.Redis().LLen(ctx, job.FileName); err != nil {
 			g.Log().Error(ctx, err)
-			return nil, errors.New("LPop 文件任务 从List中获取任务失败 加锁失败" + err.Error())
-		} else if err = messageData.Scan(&subMessageData); err != nil {
-			g.Log().Error(ctx, err)
-			return nil, errors.New("文件任务 从redis中获取的数据映射错误" + err.Error())
+			return nil, errors.New("从redis中根据文件名获取对话任务Len错误 请优先修复" + err.Error())
+		} else if c >= 0 {
+			g.Log().Info(ctx, "正在处理文件任务 ")
+			if messageData, err := g.Redis().LPop(ctx, job.FileName); err != nil {
+				//if messageData, err := utility.PopWithLock(ctx, g.Redis(), job.FileName); err != nil {
+				//if messageData, err := rq.Pop(ctx, g.Redis()); err != nil {
+				g.Log().Error(ctx, err)
+				return nil, errors.New("LPop 文件任务 从List中获取任务失败 加锁失败" + err.Error())
+			} else if messageData == nil {
+				return nil, errors.New("LPop 文件任务 当前messageData为nil 队列中以无任务可执行")
+			} else if err = messageData.Scan(&subMessageData); err != nil {
+				g.Log().Error(ctx, err)
+				return nil, errors.New("文件任务 从redis中获取的数据映射错误" + err.Error())
+			}
+			if subMessageData == nil {
+				return nil, errors.New("无任务被映射到subMessageData")
+			}
+			res = &career.FetchTaskRes{
+				TargetPhoneNumber: subMessageData.TargetPhoneNumber,
+				Content:           subMessageData.Content,
+				DeviceNumber:      req.DeviceNumber,
+				Interval:          job.IntervalTime,
+				TaskId:            subMessageData.TaskID,
+				StartAt:           job.StartTime,
+			}
 		}
-		res = &career.FetchTaskRes{
-			TargetPhoneNumber: subMessageData.TargetPhoneNumber,
-			Content:           subMessageData.Content,
-			DeviceNumber:      req.DeviceNumber,
-			Interval:          job.IntervalTime,
-			TaskId:            subMessageData.TaskID,
-			StartAt:           job.StartTime,
-		}
-	} else if ok, err := utility.KeyExists(ctx, g.Redis(), job.FileName); ok == false {
-		if err != nil {
-			g.Log().Error(ctx, err)
-			return nil, errors.New("utility.KeyExists Error " + err.Error())
-		}
+	} else if ok == false {
 		// 从文件中重新加载的数据属于新的task list【造成这种情况的原因是程序重启导致的偏差】
 		g.Log().Error(ctx, "检查redis的key不存在 开始从文件中获取")
 		g.Log().Info(ctx, "未能从redis中获取到任务 开始从文件中获取")
@@ -191,7 +195,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 		}
 		//g.Log().Infof(ctx, "data ---- > %s", string(data))
 		// 更新后的任务块条目 将json格式的数据写入mos
-		for i := 1; i <= len(payload.TargetPhoneNumber); i++ {
+		for i := 1; i < len(payload.TargetPhoneNumber); i++ {
 			message := sms.SubPostConversationRecordData{
 				TaskID:            int64(job.Id),
 				Content:           payload.Content[i],
@@ -237,11 +241,12 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	} else {
 		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"task_status": 2, "surplus_quantity": sq}).Where("id = ?", job.Id).Update(); err != nil {
 			g.Log().Error(ctx, err)
+			errMessage := err.Error()
 			if err = tx.Rollback(); err != nil {
 				g.Log().Error(ctx, err)
 				return nil, errors.New("rollback Error")
 			}
-			return nil, errors.New("更新SmsMissionReport状态错误 : task_status 2")
+			return nil, errors.New("更新SmsMissionReport状态错误 : task_status 2" + errMessage)
 		}
 	}
 
@@ -395,28 +400,34 @@ func (s *sCareerDeviceManagement) ReportTaskResult(ctx context.Context, req *car
 		RowHash:             rowHash,
 	}
 
-	var rawId int64
-	if rawId, err = dao.SmsMissionRecord.Ctx(ctx).Data(data).InsertAndGetId(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("SmsMissionRecord InsertAndGetId error")
-	}
-	res = &career.ReportTaskResultRes{ID: rawId}
+	//res = &career.ReportTaskResultRes{ID: rawId}
 	db := g.DB()
 	var tx gdb.TX
 	if tx, err = db.Begin(ctx); err != nil {
 		g.Log().Error(ctx, err)
 		return nil, errors.New("事务操作开启失败")
 	}
+	var rawId int64
+	if rawId, err = tx.Model("sms_mission_record").Ctx(ctx).Data(data).InsertAndGetId(); err != nil {
+		g.Log().Error(ctx, err)
+		if err = tx.Rollback(); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("Rollback Error ")
+		}
+		return nil, errors.New("SmsMissionRecord InsertAndGetId error")
+	}
+	g.Log().Info(ctx, rawId)
 
 	// 更新db中 report的数量信息
 	if SentSuccess == status {
 		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"quantity_sent": mission.QuantitySent + 1, "sent_success_quantity": mission.SentSuccessQuantity + 1}).Where("id = ?", mission.Id).Update(); err != nil {
 			g.Log().Error(ctx, err)
+			errMessage := err.Error()
 			if err = tx.Rollback(); err != nil {
 				g.Log().Error(ctx, err)
 				return nil, errors.New("Rollback Error ")
 			}
-			return nil, errors.New("发送成功情况下 ： 更新DB SmsMissionReport 错误")
+			return nil, errors.New("发送成功情况下 ： 更新DB SmsMissionReport 错误" + errMessage)
 		}
 	} else if SentFailure == status {
 		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"quantity_sent": mission.QuantitySent + 1, "sent_fail_quantity": mission.SentFailQuantity + 1}).Where("id = ?", mission.Id).Update(); err != nil {
@@ -445,6 +456,62 @@ func (s *sCareerDeviceManagement) ReportTaskResult(ctx context.Context, req *car
 		return nil, errors.New("Commit Error ")
 	}
 	return
+}
+
+func ReportTaskResultDBAction() {
+	db := g.DB()
+	var tx gdb.TX
+	if tx, err := db.Begin(ctx); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("事务操作开启失败")
+	}
+	var rawId int64
+	if rawId, err = tx.Model("sms_mission_record").Ctx(ctx).Data(data).InsertAndGetId(); err != nil {
+		g.Log().Error(ctx, err)
+		if err = tx.Rollback(); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("Rollback Error ")
+		}
+		return nil, errors.New("SmsMissionRecord InsertAndGetId error")
+	}
+	g.Log().Info(ctx, rawId)
+	// 更新db中 report的数量信息
+	if SentSuccess == status {
+		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"quantity_sent": mission.QuantitySent + 1, "sent_success_quantity": mission.SentSuccessQuantity + 1}).Where("id = ?", mission.Id).Update(); err != nil {
+			g.Log().Error(ctx, err)
+			errMessage := err.Error()
+			if err = tx.Rollback(); err != nil {
+				g.Log().Error(ctx, err)
+				return nil, errors.New("Rollback Error ")
+			}
+			return nil, errors.New("发送成功情况下 ： 更新DB SmsMissionReport 错误" + errMessage)
+		}
+	} else if SentFailure == status {
+		if _, err = tx.Model("sms_mission_report").Ctx(ctx).Data(g.Map{"quantity_sent": mission.QuantitySent + 1, "sent_fail_quantity": mission.SentFailQuantity + 1}).Where("id = ?", mission.Id).Update(); err != nil {
+			g.Log().Error(ctx, err)
+			if err = tx.Rollback(); err != nil {
+				g.Log().Error(ctx, err)
+				return nil, errors.New("Rollback Error ")
+			}
+			return nil, errors.New("发送失败情况下 ： 更新DB SmsMissionReport 错误")
+		}
+	} else {
+		return nil, errors.New("未知的发送状态 ，请检查验证逻辑是否成功")
+	}
+
+	// 更新 sms chart log 表
+	if _, err = tx.Model("sms_chart_log").Ctx(ctx).Data(charLog).Insert(); err != nil {
+		g.Log().Error(ctx, err)
+		if err = tx.Rollback(); err != nil {
+			g.Log().Error(ctx, err)
+			return nil, errors.New("Rollback Error ")
+		}
+		return nil, errors.New("更新chart log表失败")
+	}
+	if err = tx.Commit(); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("Commit Error ")
+	}
 }
 
 func (s *sCareerDeviceManagement) ReportReceiveContent(ctx context.Context, req *career.ReportReceiveContentReq) (res *career.ReportReceiveContentRes, err error) {
