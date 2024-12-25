@@ -1,12 +1,15 @@
 package utility
 
 import (
+	"container/list"
 	"context"
 	"fmt"
 	"github.com/gogf/gf/v2/container/gvar"
 	"github.com/gogf/gf/v2/database/gredis"
 	"github.com/gogf/gf/v2/errors/gerror"
+	"github.com/golang/groupcache/lru"
 	"github.com/google/uuid"
+	"sync"
 	"time"
 )
 
@@ -122,4 +125,72 @@ func KeyExists(ctx context.Context, redis *gredis.Redis, key string) (bool, erro
 	count := result.Int()
 
 	return count > 0, nil
+}
+
+var LocalCache = lru.New(0)
+
+//var LocalCacheQueue = NewCacheQueue(0)
+
+type CacheQueue struct {
+	mu    sync.Mutex
+	queue *list.List
+	limit int
+}
+
+//	func NewCacheQueue(limit int) *CacheQueue {
+//		return &CacheQueue{
+//			queue: list.New(),
+//			limit: limit,
+//		}
+//	}
+func NewCacheQueue(limit int) *CacheQueue {
+	return &CacheQueue{
+		queue: list.New(),
+		limit: limit,
+	}
+}
+
+// Push: 添加到队列末尾
+func (cq *CacheQueue) Push(value interface{}) {
+	cq.mu.Lock()
+	defer cq.mu.Unlock()
+
+	//if cq.queue.Len() >= cq.limit {
+	//	// 如果超过限制，移除最旧的元素
+	//	cq.queue.Remove(cq.queue.Front())
+	//}
+	cq.queue.PushBack(value)
+}
+
+// Pop: 从队列头部取出元素
+func (cq *CacheQueue) Pop() (interface{}, bool) {
+	cq.mu.Lock()
+	defer cq.mu.Unlock()
+
+	front := cq.queue.Front()
+	if front != nil {
+		value := front.Value
+		cq.queue.Remove(front)
+		return value, true
+	}
+	return nil, false
+}
+
+// Peek: 查看队列头部但不移除
+func (cq *CacheQueue) Peek() (interface{}, bool) {
+	cq.mu.Lock()
+	defer cq.mu.Unlock()
+
+	front := cq.queue.Front()
+	if front != nil {
+		return front.Value, true
+	}
+	return nil, false
+}
+
+// Len: 获取当前队列长度
+func (cq *CacheQueue) Len() int {
+	cq.mu.Lock()
+	defer cq.mu.Unlock()
+	return cq.queue.Len()
 }

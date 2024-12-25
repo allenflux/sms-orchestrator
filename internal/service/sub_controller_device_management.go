@@ -17,7 +17,18 @@ type (
 		GroupUpdate(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error)
 		GroupDelete(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error)
 		GroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error)
-		AllocateDevice2Group(ctx context.Context, req *sms.AllocateDevice2GroupReq) (res *sms.AllocateDevice2GroupRes, err error)
+		// AllocateDevice2Group allocates a list of devices to a specified group.
+		// It validates the group ID, sub-user ID, and device IDs before updating the database.
+		// The function uses a transaction to ensure consistency.
+		//
+		// Parameters:
+		// - ctx: The context for handling the operation.
+		// - req: The request containing the group ID, sub-user ID, and device IDs.
+		//
+		// Returns:
+		// - *sms.AllocateDevice2GroupRes: The response indicating success of the allocation.
+		// - error: An error if the allocation fails at any point.
+		AllocateDevice2Group(ctx context.Context, req *sms.AllocateDevice2GroupReq) (*sms.AllocateDevice2GroupRes, error)
 	}
 )
 

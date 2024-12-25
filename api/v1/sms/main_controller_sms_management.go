@@ -77,34 +77,70 @@ type ConversationListReq struct {
 	SearchWord         string `json:"search_word" dc:"搜索对话"`
 	ConversationStatus int    `json:"conversation_status" dc:"对话状态 1-所有对话 2-正在对话" default:"1"`
 }
-type ConversationRecordListResData struct {
-	TargetPhoneNumber string      `json:"target_phone_number"`
-	Content           string      `json:"content"`
-	SentOrReceive     int         `json:"sent_or_receive" dc:"1表示此条短信是发送 2表示此条短信是接收"`
-	RecordTime        *gtime.Time `json:"record_time" dc:"接收到信息的时间"`
-	ChatLogID         int         `json:"chat_log_id"  dc:"chart id"`
-}
 type ConversationListRes struct {
-	commonApi.ListRes
-	Data []ConversationRecordListResData `json:"data"`
+	*SubGetConversationRecordListRes
 }
 
 type ConversationRecordReq struct {
-	model.PageReq
-	g.Meta         `path:"/conversation/record" tags:"消息对话" method:"get" dc:"单点对话记录" `
-	ConversationID int `json:"conversation_id"`
+	g.Meta    `path:"/conversation/record" tags:"消息对话" method:"get" dc:"单点对话记录" `
+	ChatLogID int `json:"chat_log_id" v:"required" dc:"需要查看的chart id"`
 }
 
-type ConversationRecord struct {
-	Sender   string `json:"sender"`
-	Receiver string `json:"receiver"`
-	Time     string `json:"time"`
-	Content  string `json:"content"`
-}
 type ConversationRecordRes struct {
+	*SubGetConversationRecordRes
+}
+
+type TaskDevicesReq struct {
+	model.PageReq
+	g.Meta `path:"/task/device/list" tags:"群发短信" method:"get" dc:"根据任务id获取执行设备列表" `
+	TaskID int `json:"task_id" v:"required" dc:"任务id"`
+}
+
+type TaskDevicesResData struct {
+	ID        int    `json:"id"`
+	TaskID    int    `json:"task_id" dc:"任务id"`
+	DeviceNum string `json:"device_num"`
+}
+
+type TaskDevicesRes struct {
 	commonApi.ListRes
-	ReceiverNumber string `json:"receiver_number" dc:"Receiver 字段代表对方 人类"`
-	Data           struct {
-		History []ConversationRecord `json:"history"`
-	} `json:"data"`
+	Data []TaskDevicesResData `json:"data"`
+}
+
+type SubTaskDevicesReq struct {
+	model.PageReq
+	g.Meta `path:"/sub/task/device/list" tags:"群发短信" method:"get" dc:"根据任务id获取执行设备列表" `
+	TaskID int `json:"task_id" v:"required" dc:"任务id"`
+}
+
+type SubTaskDevicesRes struct {
+	commonApi.ListRes
+	Data []TaskDevicesResData `json:"data"`
+}
+
+type PendingTaskReq struct {
+	g.Meta `path:"/task/device/pending/list" tags:"群发短信" method:"get" dc:"待发送任务列表" `
+	TaskID int `json:"task_id" dc:"任务id"`
+}
+
+type PendingTaskRes struct {
+	commonApi.ListRes
+	Data []PendingTaskResData `json:"data"`
+}
+
+type SubPendingTaskReq struct {
+	g.Meta `path:"/sub/task/device/pending/list" tags:"子平台群发短信" method:"get" dc:"待发送任务列表" `
+	TaskID int `json:"task_id" dc:"任务id"`
+}
+
+type PendingTaskResData struct {
+	TaskID            int         `json:"task_id" dc:"任务id"`
+	TargetPhoneNumber string      `json:"target_phone_number"`
+	Content           string      `json:"content"`
+	StartAt           *gtime.Time `json:"start_at"`
+}
+
+type SubPendingTaskRes struct {
+	commonApi.ListRes
+	Data []PendingTaskResData `json:"data"`
 }

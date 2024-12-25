@@ -15,6 +15,17 @@ type (
 		GetTaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error)
 		GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
 		GetConversationRecordList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error)
+		// GetTaskDevices retrieves the list of devices assigned to a specific task (group ID) with pagination support.
+		//
+		// Parameters:
+		// - ctx: The context for handling the request.
+		// - req: The request containing the task ID and pagination details.
+		//
+		// Returns:
+		// - *sms.TaskDevicesRes: The response containing the list of devices and pagination metadata.
+		// - error: An error if the operation fails.
+		GetTaskDevices(ctx context.Context, req *sms.TaskDevicesReq) (*sms.TaskDevicesRes, error)
+		GetPendingTasks(ctx context.Context, req *sms.PendingTaskReq) (res *sms.PendingTaskRes, err error)
 	}
 )
 

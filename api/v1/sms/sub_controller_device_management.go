@@ -87,9 +87,9 @@ type SubDeleteGroupRes struct{}
 
 type AllocateDevice2GroupReq struct {
 	g.Meta       `path:"/sub/device/group" tags:"子平台设备列表" method:"post" dc:"分配设备给分组" `
-	SubUserID    int      `json:"sub_user_id"  v:"required" dc:"子平台用户账号ID"`
-	DeviceIdList []string `json:"device_id_list" v:"required"`
-	GroupID      int      `json:"group_id" v:"required"`
+	SubUserID    int   `json:"sub_user_id"  v:"required" dc:"子平台用户账号ID"`
+	DeviceIdList []int `json:"device_id_list" v:"required"`
+	GroupID      int   `json:"group_id" v:"required"`
 }
 type AllocateDevice2GroupRes struct {
 }

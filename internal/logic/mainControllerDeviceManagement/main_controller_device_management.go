@@ -3,6 +3,7 @@ package mainControllerDeviceManagement
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
@@ -90,67 +91,113 @@ func (s *sMainControllerDeviceManagement) GetDeviceList(ctx context.Context, req
 	return
 }
 
-func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (res *sms.AllocateDevice2ProjectRes, err error) {
+// AllocateDevice2Project allocates a list of devices to a project.
+// It validates the device IDs, checks if the project exists, and updates the database accordingly.
+//
+// Parameters:
+// - ctx: The context for handling the operation.
+// - req: The request containing the project ID and list of device IDs to be allocated.
+//
+// Returns:
+// - *sms.AllocateDevice2ProjectRes: The response indicating the success of the operation.
+// - error: An error if the operation fails at any step.
+func (s *sMainControllerDeviceManagement) AllocateDevice2Project(ctx context.Context, req *sms.AllocateDevice2ProjectReq) (*sms.AllocateDevice2ProjectRes, error) {
+	// Validate the request
 	if len(req.DeviceIdList) == 0 {
 		return nil, errors.New("device id list is empty")
 	}
-	// get project name
+
+	// Check if the project exists and retrieve its details
 	var project entity.ProjectList
-	c := 0
-	if err = dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).ScanAndCount(&project, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("数据库查询ProjectList错误" + err.Error())
+	count := 0
+	if err := dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).ScanAndCount(&project, &count, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query ProjectList for ProjectID=%d: %v", req.ProjectID, err)
+		return nil, fmt.Errorf("failed to query project list: %w", err)
 	}
-	if c == 0 {
-		return nil, errors.New("错误的ProjectID")
+	if count == 0 {
+		return nil, fmt.Errorf("invalid ProjectID: %d", req.ProjectID)
 	}
 
+	// Begin a database transaction
 	db := g.DB()
-	var tx gdb.TX
-	if tx, err = db.Begin(ctx); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("开启事务操作失败")
+	tx, err := db.Begin(ctx)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to start transaction: %v", err)
+		return nil, fmt.Errorf("failed to start transaction: %w", err)
 	}
-	g.Log().Info(ctx, "开启事务操作")
+	defer func() {
+		if p := recover(); p != nil {
+			_ = tx.Rollback()
+			g.Log().Errorf(ctx, "Transaction rolled back due to panic: %v", p)
+		}
+	}()
 
-	for i := range req.DeviceIdList {
-		c := 0
-		dl := &entity.DeviceList{}
-		if err = dao.DeviceList.Ctx(ctx).Where("id=?", req.DeviceIdList[i]).ScanAndCount(dl, &c, false); err != nil {
-			g.Log().Error(ctx, err)
-			return nil, errors.New("查询DeviceList错误")
-		} else if c == 0 {
-			return nil, errors.New("不存在的Device， 请验证Device ID是否正确")
-		} else if dl.GroupId != 0 {
-			return nil, errors.New("当前Device {" + dl.DeviceNumber + "} 已经被分配 请重新选择")
+	g.Log().Info(ctx, "Transaction started for device allocation")
+
+	// Process each device ID in the list
+	for _, deviceID := range req.DeviceIdList {
+		// Check if the device exists and is not already allocated
+		_, err := validateAndRetrieveDevice(ctx, tx, deviceID)
+		if err != nil {
+			_ = tx.Rollback()
+			return nil, err
 		}
 
-		// 检查当前项目是否被分配给子账户 如果已分配 那么将设备中的子账户信息也更新
-		data := g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id}
+		// Prepare the update data for the device
+		updateData := g.Map{
+			"assigned_items":    project.ProjectName,
+			"assigned_items_id": project.Id,
+		}
 		if project.AssociatedAccountId != 0 {
-			data = g.Map{"assigned_items": project.ProjectName, "assigned_items_id": project.Id, "owner_account": project.AssociatedAccount, "owner_account_id": project.AssociatedAccountId}
+			updateData["owner_account"] = project.AssociatedAccount
+			updateData["owner_account_id"] = project.AssociatedAccountId
 		}
 
-		if _, err = tx.Model("device_list").Ctx(ctx).Data(data).Where("id = ?", req.DeviceIdList[i]).Update(); err != nil {
-			g.Log().Error(ctx, err)
-			if err = tx.Rollback(); err != nil {
-				g.Log().Error(ctx, err)
-				return nil, errors.New("rollback Error")
-			}
-			return nil, errors.New("更新 DeviceList DB assigned_items 和 assigned_items_id 错误")
+		// Update the device record
+		if _, err := tx.Model("device_list").Ctx(ctx).Data(updateData).Where("id = ?", deviceID).Update(); err != nil {
+			g.Log().Errorf(ctx, "Failed to update DeviceList for DeviceID=%d: %v", deviceID, err)
+			_ = tx.Rollback()
+			return nil, fmt.Errorf("failed to update DeviceList for DeviceID=%d: %w", deviceID, err)
 		}
 	}
-	if _, err = tx.Model("project_list").Ctx(ctx).Data("quantity_device = ? ", project.QuantityDevice+len(req.DeviceIdList)).Where("id = ?", project.Id).Update(); err != nil {
-		g.Log().Error(ctx, err)
-		if err = tx.Rollback(); err != nil {
-			g.Log().Error(ctx, err)
-			return nil, errors.New("rollback Error")
-		}
-		return nil, errors.New("更新 project_list DB quantity_device  错误")
+
+	// Update the project's device quantity
+	if _, err := tx.Model("project_list").Ctx(ctx).
+		Data("quantity_device = ?", project.QuantityDevice+len(req.DeviceIdList)).
+		Where("id = ?", project.Id).Update(); err != nil {
+		g.Log().Errorf(ctx, "Failed to update ProjectList quantity_device for ProjectID=%d: %v", project.Id, err)
+		_ = tx.Rollback()
+		return nil, fmt.Errorf("failed to update ProjectList quantity_device for ProjectID=%d: %w", project.Id, err)
 	}
-	if err = tx.Commit(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("Commit  Error")
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		g.Log().Errorf(ctx, "Transaction commit failed: %v", err)
+		return nil, fmt.Errorf("transaction commit failed: %w", err)
 	}
-	return
+
+	g.Log().Infof(ctx, "Successfully allocated devices to ProjectID=%d", req.ProjectID)
+	return &sms.AllocateDevice2ProjectRes{}, nil
+}
+
+// Helper: Validate and retrieve a device by ID
+func validateAndRetrieveDevice(ctx context.Context, tx gdb.TX, deviceID int) (*entity.DeviceList, error) {
+	var device entity.DeviceList
+	count := 0
+
+	// Query the device from the database
+	if err := dao.DeviceList.Ctx(ctx).Where("id = ?", deviceID).ScanAndCount(&device, &count, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query DeviceList for DeviceID=%d: %v", deviceID, err)
+		return nil, fmt.Errorf("failed to query DeviceList: %w", err)
+	}
+	if count == 0 {
+		return nil, fmt.Errorf("invalid DeviceID: %d", deviceID)
+	}
+
+	// Check if the device is already assigned
+	if device.GroupId != 0 {
+		return nil, fmt.Errorf("device '%s' is already assigned to a group", device.DeviceNumber)
+	}
+
+	return &device, nil
 }

@@ -6,6 +6,7 @@ import requests
 from  requests_toolbelt import MultipartEncoder
 
 import url
+from generate_device_task_file import generate_device_task_file
 
 faker = Faker()
 # sub_upload_task_url = "http://192.168.1.14:8822/api/v1/sms/sub/task"
@@ -31,9 +32,11 @@ def sub_upload_task():
             fields={'interval_time': '1',
                     'timing_start_time': str(time.time()),
                     'sub_user_id': str(test_sub_user_id),
-                    "project_id":str(project_id),
+                    # "project_id":str(project_id),
+                    # "project_id":"36",
                     "task_name":task_name,
-                    "group_id":str(group_id),
+                    # "group_id":str(group_id),
+                    "group_id":str(45),
                     'file': ('filename', f.read(), 'text/plain')}
         )
         resp = requests.post(sub_upload_task_url,
@@ -47,4 +50,5 @@ def sub_upload_task():
 
 
 if __name__ == '__main__':
+    generate_device_task_file(1000)
     sub_upload_task()

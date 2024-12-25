@@ -16,6 +16,7 @@ def device_fetch_task():
     result_list = []
     for device_no in range(20):
         print("start ",time.time())
+        print(device_fetch_task_url)
         resp = requests.post(device_fetch_task_url, json={"device_number": random.choice(device_num_list)})
         # resp = requests.post(device_fetch_task_url, json={"device_number": "python_test_device_seat.jpg523"})
         print(resp.json())
