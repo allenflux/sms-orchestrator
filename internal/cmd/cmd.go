@@ -50,7 +50,7 @@ var (
 				)
 			})
 
-			apiServer.Group("/api/v1/user", func(group *ghttp.RouterGroup) {
+			apiServer.Group("/api/v1/sms/user", func(group *ghttp.RouterGroup) {
 				group.Middleware(
 					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
 					service.SysUser().CheckLogin,
@@ -63,7 +63,7 @@ var (
 				)
 			})
 
-			apiServer.Group("/api/v1/sub-user", func(group *ghttp.RouterGroup) {
+			apiServer.Group("/api/v1/sms/sub-user", func(group *ghttp.RouterGroup) {
 				group.Middleware(
 					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
 					service.SysUser().CheckLogin,
@@ -76,14 +76,14 @@ var (
 				)
 			})
 
-			apiServer.Group("/api/v1/all-user", func(group *ghttp.RouterGroup) {
+			apiServer.Group("/api/v1/sms/all-user", func(group *ghttp.RouterGroup) {
 				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
 				group.Bind(
 					v1.NewAllUser(),
 				)
 			})
 
-			apiServer.Group("/api/v1/role", func(group *ghttp.RouterGroup) {
+			apiServer.Group("/api/v1/sms/role", func(group *ghttp.RouterGroup) {
 				group.Middleware(
 					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
 					service.SysUser().CheckLogin,
@@ -94,7 +94,7 @@ var (
 				group.Bind(v1.NewRole())
 			})
 
-			apiServer.Group("/api/v1/log", func(group *ghttp.RouterGroup) {
+			apiServer.Group("/api/v1/sms/log", func(group *ghttp.RouterGroup) {
 				group.Middleware(
 					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,
 					service.SysUser().CheckLogin,

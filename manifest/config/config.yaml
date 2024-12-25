@@ -96,7 +96,10 @@ oss:
   secret_key : "BE7DHOPFKYefkjWTH2b4NTO6d0DG8oJb"
 
 
-
+#控制FetchTask和ReportResult的兵法数
+ChanLen:
+  FetchTask : 1
+  ReportResult: 5
 
 #调试在测试环境下无法走通的api使用 为跳过真实API调用
 DeveloperModel:

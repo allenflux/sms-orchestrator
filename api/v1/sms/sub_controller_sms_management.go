@@ -150,8 +150,10 @@ type SubPostConversationRecordRes struct {
 }
 
 type SubPostConversationRecordData struct {
-	TaskID            int64  `json:"task_id"`
-	Content           string `json:"content"`
-	DeviceNumber      string `json:"device_number"`
-	TargetPhoneNumber string `json:"target_phone_number"`
+	TaskID            int64       `json:"task_id"`
+	Content           string      `json:"content"`
+	DeviceNumber      string      `json:"device_number"`
+	TargetPhoneNumber string      `json:"target_phone_number"`
+	Interval          string      `json:"interval"`
+	StartAt           *gtime.Time `json:"start_at"`
 }

@@ -4,13 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/os/gtime"
 	"io/ioutil"
+	commonApi "sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/consts"
 	"sms_backend/internal/dao"
+	"sms_backend/internal/model"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
+	"sms_backend/utility"
 )
 
 func New() *sSubControllerSmsManagement {
@@ -84,6 +89,15 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 		return nil, errors.New("未查询到相关group id，请检查 group id是否正确")
 	}
 
+	var devices []*entity.DeviceList
+	if err = dao.DeviceList.Ctx(ctx).Where("group_id = ?", group.Id).ScanAndCount(&devices, &c, false); err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("查询DeviceList错误" + err.Error())
+	}
+	if c == 0 {
+		return nil, errors.New("当前分组无可用设备 请分配设备后再上传任务")
+	}
+
 	var project entity.ProjectList
 	c = 0
 	if err = dao.ProjectList.Ctx(ctx).Where("id=?", group.ProjectId).ScanAndCount(&project, &c, false); err != nil {
@@ -131,11 +145,6 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 		return nil, errors.New("文件格式错误")
 	}
 
-	//if _, err = g.Redis().Do(ctx, "SET", filename, string(content)); err != nil {
-	//	g.Log().Error(ctx, err)
-	//	return nil, errors.New("将文件内容存储到Redis 失败")
-	//}
-
 	data := entity.SmsMissionReport{
 		ProjectId:       group.ProjectId,
 		TaskName:        req.TaskName,
@@ -152,7 +161,7 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 		ProjectName:         project.ProjectName,
 		AssociatedAccountId: req.SubUserId,
 	}
-
+	g.Log().Info(ctx, data)
 	var mrID int64
 	if mrID, err = dao.SmsMissionReport.Ctx(ctx).Data(data).InsertAndGetId(); err != nil {
 		g.Log().Error(ctx, err)
@@ -164,25 +173,38 @@ func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.S
 
 	//将文件存储到 Redis DB
 	g.Log().Infof(ctx, "filename===%s", filename)
-
+	// 将任务列表分割成小队列
+	// 查询当前组下设备的的Device 信息，然后将任务正态分布到每台Device上
+	devicesLen := len(devices)
+	j := 0
 	for i := range payload.TargetPhoneNumber {
-		message := sms.SubPostConversationRecordData{
+		message := &sms.SubPostConversationRecordData{
 			TaskID:            mrID,
 			Content:           payload.Content[i],
-			DeviceNumber:      "",
+			DeviceNumber:      devices[j].DeviceNumber,
 			TargetPhoneNumber: payload.TargetPhoneNumber[i],
 		}
-		// 生成任务队列
-		if _, err = g.Redis().LPush(ctx, filename, message); err != nil {
-			g.Log().Error(ctx, err)
-			return nil, errors.New("将文件内容存储到Redis 失败")
+		j += 1
+		if j == devicesLen {
+			j = 0
 		}
+		// 生成任务队列
+		//keyList := filename + message.DeviceNumber
+		keyList := filename
+
+		if err = utility.AddValueToCacheAndRedisQueue(ctx, keyList, message); err != nil {
+			return nil, err
+		}
+		//if err = utility.AddValueToSafeSliceAndRedis(ctx, keyList, message); err != nil {
+		//	return nil, err
+		//}
 	}
 	return
 
 }
 
 // Download File
+
 func (s *sSubControllerSmsManagement) TaskFileDownload(ctx context.Context, req *sms.TaskFileDownloadReq) (res *sms.TaskFileDownloadRes, err error) {
 	g.Log().Infof(ctx, "FileDownloadReq: %v", req.FileName)
 	var content []byte
@@ -207,68 +229,133 @@ func (s *sSubControllerSmsManagement) TaskReportDelete(ctx context.Context, req 
 	return
 }
 
-func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Context, req *sms.SubGetConversationRecordReq) (res *sms.SubGetConversationRecordRes, err error) {
-	var chatLog entity.SmsChartLog
-	c := 0
-	if err = dao.SmsChartLog.Ctx(ctx).Where("id = ?", req.ChatLogID).ScanAndCount(&chatLog, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询 DB SmsChartLog 错误")
+// GetSubGetConversationRecord retrieves a detailed conversation record list for a specific ChatLogID.
+//
+// Parameters:
+// - ctx: The context for handling the request.
+// - req: The request containing the ChatLogID.
+//
+// Returns:
+// - *sms.SubGetConversationRecordRes: The response containing the conversation record list.
+// - error: An error if the operation fails.
+func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Context, req *sms.SubGetConversationRecordReq) (*sms.SubGetConversationRecordRes, error) {
+	var (
+		chatLog     entity.SmsChartLog
+		chatLogList []*entity.SmsChartLog
+	)
+
+	// Step 1: Fetch the main chat log entry based on ChatLogID
+	count := 0
+	err := dao.SmsChartLog.Ctx(ctx).
+		Where("id = ?", req.ChatLogID).
+		ScanAndCount(&chatLog, &count, false)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to query DB SmsChartLog for ChatLogID=%d: %v", req.ChatLogID, err)
+		return nil, fmt.Errorf("failed to query DB SmsChartLog: %w", err)
 	}
-	if c == 0 {
-		return nil, errors.New("错误的ChatLogID")
-	}
-	//if chatLog.AssociatedAccountId != req.SubUserID {
-	//	return nil, errors.New("sub user id 验证错误")
-	//}
-	var chatLogList []*entity.SmsChartLog
-	if err = dao.SmsChartLog.Ctx(ctx).Where("target_phone_number = ?", chatLog.TargetPhoneNumber).Where("device_number = ?", chatLog.DeviceNumber).OrderDesc("id").Scan(&chatLogList); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询 DB SmsChartLog 错误2")
+	if count == 0 {
+		g.Log().Warningf(ctx, "Invalid ChatLogID=%d: No matching record found", req.ChatLogID)
+		return nil, errors.New("invalid ChatLogID: no matching record found")
 	}
 
-	data := make([]sms.SubGetConversationRecordListResData, len(chatLogList))
-	for i := range chatLogList {
-		data[i].ChatLogID = chatLogList[i].Id
-		data[i].RecordTime = chatLogList[i].CreatedAt
-		data[i].Content = chatLogList[i].SmsContent
-		data[i].TargetPhoneNumber = chatLogList[i].TargetPhoneNumber
-		data[i].SentOrReceive = chatLogList[i].SentOrReceive
+	// Step 2: Fetch all chat logs for the same TargetPhoneNumber and DeviceNumber
+	if err := dao.SmsChartLog.Ctx(ctx).
+		Where("target_phone_number = ?", chatLog.TargetPhoneNumber).
+		Where("device_number = ?", chatLog.DeviceNumber).
+		OrderDesc("id").
+		Scan(&chatLogList); err != nil {
+		g.Log().Errorf(ctx, "Failed to query related SmsChartLog records for TargetPhoneNumber=%s, DeviceNumber=%s: %v", chatLog.TargetPhoneNumber, chatLog.DeviceNumber, err)
+		return nil, fmt.Errorf("failed to query related chat logs: %w", err)
 	}
-	res = &sms.SubGetConversationRecordRes{
+
+	// Step 3: Map the chat logs to the response structure
+	data := make([]sms.SubGetConversationRecordListResData, len(chatLogList))
+	for i, log := range chatLogList {
+		data[i] = sms.SubGetConversationRecordListResData{
+			ChatLogID:         log.Id,
+			RecordTime:        log.CreatedAt,
+			Content:           log.SmsContent,
+			TargetPhoneNumber: log.TargetPhoneNumber,
+			SentOrReceive:     log.SentOrReceive,
+		}
+	}
+
+	// Step 4: Prepare and return the response
+	res := &sms.SubGetConversationRecordRes{
 		Data: data,
 	}
 
-	return
+	g.Log().Infof(ctx, "Successfully fetched conversation record list for ChatLogID=%d (Total=%d)", req.ChatLogID, len(data))
+	return res, nil
 }
 
-func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.Context, req *sms.SubGetConversationRecordListReq) (res *sms.SubGetConversationRecordListRes, err error) {
-	var chatLogsId []*entity.SmsChartLog
-	var chatLogs []*entity.SmsChartLog
-	if err = dao.SmsChartLog.Ctx(ctx).Page(req.PageNum, req.PageSize).Where("project_id=?", req.ProjectID).Where("associated_account_id=?", req.SubUserID).FieldMax("id", "id").Group("target_phone_number").Group("device_number").Scan(&chatLogsId); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询SmsChartLog IDs错误")
-	}
-	idList := make([]int, len(chatLogsId))
-	for i := range chatLogsId {
-		idList[i] = chatLogsId[i].Id
+// SubGetConversationRecordList retrieves a paginated list of conversation records for a specific project.
+//
+// Parameters:
+// - ctx: The context for handling the request.
+// - req: The request containing pagination, project ID, and optional SubUserID.
+//
+// Returns:
+// - *sms.SubGetConversationRecordListRes: The response containing the conversation records.
+// - error: An error if the operation fails.
+func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.Context, req *sms.SubGetConversationRecordListReq) (*sms.SubGetConversationRecordListRes, error) {
+	var (
+		chatLogsId []*entity.SmsChartLog
+		chatLogs   []*entity.SmsChartLog
+	)
+
+	// Step 1: Query unique conversation records based on target phone number and device number
+	query := dao.SmsChartLog.Ctx(ctx).
+		Page(req.PageNum, req.PageSize).
+		Where("project_id = ?", req.ProjectID)
+
+	if req.SubUserID != 0 {
+		query = query.Where("associated_account_id = ?", req.SubUserID)
 	}
 
-	if err = dao.SmsChartLog.Ctx(ctx).WhereIn("id", idList).Scan(&chatLogs); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询SmsChartLog错误")
+	// Fetch the unique IDs for the latest conversation records
+	if err := query.
+		FieldMax("id", "id").
+		Group("target_phone_number").
+		Group("device_number").
+		Scan(&chatLogsId); err != nil {
+		g.Log().Errorf(ctx, "Failed to query SmsChartLog IDs for ProjectID=%d: %v", req.ProjectID, err)
+		return nil, fmt.Errorf("failed to query unique conversation record IDs: %w", err)
 	}
+
+	// Step 2: Extract IDs and prepare for fetching full records
+	idList := make([]int, len(chatLogsId))
+	for i, log := range chatLogsId {
+		idList[i] = log.Id
+	}
+
+	// Step 3: Query full conversation records using the fetched IDs
+	if err := dao.SmsChartLog.Ctx(ctx).
+		WhereIn("id", idList).
+		Scan(&chatLogs); err != nil {
+		g.Log().Errorf(ctx, "Failed to query SmsChartLog for IDs: %v", err)
+		return nil, fmt.Errorf("failed to query conversation records: %w", err)
+	}
+
+	// Step 4: Transform the query results into the response format
 	data := make([]sms.SubGetConversationRecordListResData, len(chatLogs))
-	for i := range chatLogs {
-		data[i].ChatLogID = chatLogs[i].Id
-		data[i].RecordTime = chatLogs[i].CreatedAt
-		data[i].Content = chatLogs[i].SmsContent
-		data[i].TargetPhoneNumber = chatLogs[i].TargetPhoneNumber
-		data[i].SentOrReceive = chatLogs[i].SentOrReceive
+	for i, log := range chatLogs {
+		data[i] = sms.SubGetConversationRecordListResData{
+			ChatLogID:         log.Id,
+			RecordTime:        log.CreatedAt,
+			Content:           log.SmsContent,
+			TargetPhoneNumber: log.TargetPhoneNumber,
+			SentOrReceive:     log.SentOrReceive,
+		}
 	}
-	res = &sms.SubGetConversationRecordListRes{
+
+	// Step 5: Prepare the response
+	res := &sms.SubGetConversationRecordListRes{
 		Data: data,
 	}
-	return
+
+	g.Log().Infof(ctx, "Successfully fetched %d conversation records for ProjectID=%d", len(data), req.ProjectID)
+	return res, nil
 }
 
 func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req *sms.SubTaskRecordReq) (res *sms.SubTaskRecordRes, err error) {
@@ -355,6 +442,8 @@ func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context
 		Content:           req.Content,
 		DeviceNumber:      chartLog.DeviceNumber,
 		TargetPhoneNumber: chartLog.TargetPhoneNumber,
+		Interval:          "0",
+		StartAt:           gtime.Now(),
 	}
 	// 生成任务队列
 	var rIndex int64
@@ -366,4 +455,106 @@ func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context
 	res.TaskItemName = chartLog.DeviceNumber
 	res.UnSendTaskNum = rIndex
 	return
+}
+
+// GetPendingTasks retrieves the pending tasks for a specific SMS mission.
+//
+// Parameters:
+// - ctx: The context for the request.
+// - req: The request containing the TaskID.
+//
+// Returns:
+// - *sms.SubPendingTaskRes: The response containing the list of pending tasks.
+// - error: An error if the operation fails.
+func (s *sSubControllerSmsManagement) GetPendingTasks(ctx context.Context, req *sms.SubPendingTaskReq) (*sms.SubPendingTaskRes, error) {
+	// Fetch task details by TaskID
+	var task entity.SmsMissionReport
+	if err := dao.SmsMissionReport.Ctx(ctx).
+		Where("id = ?", req.TaskID).
+		Scan(&task); err != nil {
+		g.Log().Errorf(ctx, "Failed to fetch task details for TaskID=%d: %v", req.TaskID, err)
+		return nil, fmt.Errorf("failed to fetch task details: %w", err)
+	}
+
+	// Log task details
+	g.Log().Infof(ctx, "FileName for TaskID=%d: %s", req.TaskID, task.FileName)
+
+	// Read the task file from the file system
+	filePath := fmt.Sprintf("%s/%s", consts.TaskFilePath, task.FileName)
+	content, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to read file '%s': %v", filePath, err)
+		return nil, errors.New("failed to read task file")
+	}
+
+	// Unmarshal the file content into a structured payload
+	var payload FileData
+	if err := json.Unmarshal(content, &payload); err != nil {
+		g.Log().Errorf(ctx, "Failed to unmarshal file content for TaskID=%d: %v", req.TaskID, err)
+		return nil, fmt.Errorf("failed to parse task file content: %w", err)
+	}
+
+	// Generate the list of pending tasks based on the surplus quantity
+	length := task.SurplusQuantity
+	if length > len(payload.TargetPhoneNumber) || length > len(payload.Content) {
+		g.Log().Errorf(ctx, "SurplusQuantity exceeds file content length for TaskID=%d", req.TaskID)
+		return nil, errors.New("invalid surplus quantity in task file")
+	}
+
+	data := make([]sms.PendingTaskResData, length)
+	for i := 0; i < length; i++ {
+		data[i] = sms.PendingTaskResData{
+			TaskID:            req.TaskID,
+			TargetPhoneNumber: payload.TargetPhoneNumber[i],
+			Content:           payload.Content[i],
+			StartAt:           task.StartTime,
+		}
+	}
+
+	// Prepare the response
+	res := &sms.SubPendingTaskRes{
+		ListRes: commonApi.ListRes{
+			Total: length,
+		},
+		Data: data,
+	}
+
+	return res, nil
+}
+
+// GetTaskDevices retrieves the list of devices assigned to a specific task by delegating the request to the main service.
+//
+// Parameters:
+// - ctx: The context for handling the request.
+// - req: The request containing task ID and pagination details.
+//
+// Returns:
+// - *sms.SubTaskDevicesRes: The response containing the list of devices and pagination metadata.
+// - error: An error if the operation fails.
+func (s *sSubControllerSmsManagement) GetTaskDevices(ctx context.Context, req *sms.SubTaskDevicesReq) (*sms.SubTaskDevicesRes, error) {
+	// Prepare the main service request
+	mainReq := &sms.TaskDevicesReq{
+		PageReq: model.PageReq{
+			PageSize: req.PageSize,
+			PageNum:  req.PageNum,
+		},
+		TaskID: req.TaskID,
+	}
+
+	// Delegate the request to the main service
+	mainRes, err := service.MainControllerSmsManagement().GetTaskDevices(ctx, mainReq)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to get task devices for TaskID=%d: %v", req.TaskID, err)
+		return nil, err
+	}
+
+	// Prepare the response for the sub-controller
+	res := &sms.SubTaskDevicesRes{
+		ListRes: commonApi.ListRes{
+			Total: mainRes.Total,
+		},
+		Data: mainRes.Data,
+	}
+
+	return res, nil
 }

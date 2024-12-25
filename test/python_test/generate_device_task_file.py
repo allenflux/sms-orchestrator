@@ -9,13 +9,14 @@ import json
 from faker import Faker
 fake = Faker(locale='en_US')
 
-def generate_device_task_file():
+def generate_device_task_file(num):
     content_list = []
     phone_list = []
-    for i in range(1000):
-        content = fake.text(max_nb_chars=100)
+    for i in range(num):
+        content =str(i) + "---" + fake.text(max_nb_chars=10)
         content_list.append(content)
-        phone = fake.phone_number()
+        # phone = fake.phone_number()
+        phone = "15121066738"
         phone_list.append(phone)
         print(content)
         print(phone)
@@ -25,4 +26,4 @@ def generate_device_task_file():
 
 
 if __name__ == '__main__':
-    generate_device_task_file()
+    generate_device_task_file(100)

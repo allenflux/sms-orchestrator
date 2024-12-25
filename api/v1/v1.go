@@ -42,6 +42,7 @@ type IV1Log interface {
 
 type IV1Role interface {
 	List(ctx context.Context, req *role.ListReq) (res *role.ListRes, err error)
+	GetPermission(ctx context.Context, req *role.GetPermissionReq) (res *role.GetPermissionRes, err error)
 	Created(ctx context.Context, req *role.CreatedReq) (res *role.CreatedRes, err error)
 	Updated(ctx context.Context, req *role.UpdatedReq) (res *role.UpdatedRes, err error)
 	Deleted(ctx context.Context, req *role.DeletedReq) (res *role.DeletedRes, err error)
@@ -60,6 +61,10 @@ type IV1Sms interface {
 	TaskRecord(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
 	ConversationList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error)
 	ConversationRecord(ctx context.Context, req *sms.ConversationRecordReq) (res *sms.ConversationRecordRes, err error)
+	TaskDevices(ctx context.Context, req *sms.TaskDevicesReq) (res *sms.TaskDevicesRes, err error)
+	SubTaskDevices(ctx context.Context, req *sms.SubTaskDevicesReq) (res *sms.SubTaskDevicesRes, err error)
+	PendingTask(ctx context.Context, req *sms.PendingTaskReq) (res *sms.PendingTaskRes, err error)
+	SubPendingTask(ctx context.Context, req *sms.SubPendingTaskReq) (res *sms.SubPendingTaskRes, err error)
 	SubDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (res *sms.SubDeviceListRes, err error)
 	SubGroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error)
 	SubCreateGroup(ctx context.Context, req *sms.SubCreateGroupReq) (res *sms.SubCreateGroupRes, err error)

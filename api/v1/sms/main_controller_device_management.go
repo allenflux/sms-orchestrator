@@ -99,8 +99,8 @@ type DeviceListRes struct {
 
 type AllocateDevice2ProjectReq struct {
 	g.Meta       `path:"/device/project" tags:"设备列表" method:"post" dc:"分配设备给项目" `
-	DeviceIdList []string `json:"device_id_list" v:"required"`
-	ProjectID    int      `json:"project_id" v:"required"`
+	DeviceIdList []int `json:"device_id_list" v:"required"`
+	ProjectID    int   `json:"project_id" v:"required"`
 }
 type AllocateDevice2ProjectRes struct {
 }
