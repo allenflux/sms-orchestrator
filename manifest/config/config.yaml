@@ -17,14 +17,65 @@ server:
     accessLogEnabled: true              # 是否记录访问日志。默认为false
     accessLogPattern: "access-{Ymd}.log" # 访问日志文件格式。默认为"access-{Ymd}.log"
 logger:
-  path: "resource/log/run"
-  file: "{Y-m-d}.log"
-  level: "all"
-  stdout: true # 不输出到标准输出，但会输出到日志文件
-  rotateSize: "512M" # 日志文件大小超过512M时会自动切割
-  rotateBackupLimit: 100 # 最多保留100个日志文件
-  rotateBackupExpire: "7d" # 日志文件保留7天
-  rotateBackupCompress: 9 # 日志文件压缩级别，范围0~9，0表示不压缩
+  default:
+    path: "resource/log/run"
+    file: "{Y-m-d}.log"
+    level: "all"
+    stdout: true
+    rotateSize: "512M"
+    rotateBackupLimit: 100
+    rotateBackupExpire: "7d"
+    rotateBackupCompress: 9
+
+  career:
+    path: "resource/log/career"
+    file: "{Y-m-d}.log"
+    level: "info"
+    stdout: false
+    rotateSize: "512M"
+    rotateBackupLimit: 50
+    rotateBackupExpire: "3d"
+    rotateBackupCompress: 9
+
+  fetchTaskQueue:
+    path: "resource/log/fetchTaskQueue"
+    file: "{Y-m-d}.log"
+    level: "info"
+    stdout: false
+    rotateSize: "512M"
+    rotateBackupLimit: 50
+    rotateBackupExpire: "3d"
+    rotateBackupCompress: 9
+
+  reportTaskQueue:
+    path: "resource/log/reportTaskQueue"
+    file: "{Y-m-d}.log"
+    level: "info"
+    stdout: false
+    rotateSize: "512M"
+    rotateBackupLimit: 50
+    rotateBackupExpire: "3d"
+    rotateBackupCompress: 9
+
+  receiveTaskQueue:
+    path: "resource/log/receiveTaskQueue"
+    file: "{Y-m-d}.log"
+    level: "info"
+    stdout: false
+    rotateSize: "512M"
+    rotateBackupLimit: 50
+    rotateBackupExpire: "3d"
+    rotateBackupCompress: 9
+
+  cache:
+    path: "resource/log/cache"
+    file: "{Y-m-d}.log"
+    level: "info"
+    stdout: false
+    rotateSize: "512M"
+    rotateBackupLimit: 50
+    rotateBackupExpire: "3d"
+    rotateBackupCompress: 9
 
 # Database.
 database:

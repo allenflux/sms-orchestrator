@@ -2,9 +2,8 @@ package subUser
 
 import (
 	"github.com/gogf/gf/v2/frame/g"
-	"sms_backend/api/v1/allUser"
+	"sms_backend/api/v1/user"
 	"sms_backend/internal/consts"
-	"sms_backend/internal/model"
 )
 
 type SubRegisterReq struct {
@@ -20,13 +19,11 @@ type SubRegisterRes struct{}
 
 type SubGetListReq struct {
 	g.Meta `path:"/list" tags:"子账号后台(admin)" method:"post" sm:"获取子账号列表"`
-	allUser.GeneralReq
+	*user.GetListReq
 }
 
 type SubGetListRes struct {
-	g.Meta `mime:"application/json"`
-	List   []*model.SubUser
-	allUser.GeneralRes
+	*user.GetListRes
 }
 
 type SubUpdateReq struct {

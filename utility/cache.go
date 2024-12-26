@@ -10,6 +10,8 @@ import (
 	"sync"
 )
 
+const cacheLogger = "cache"
+
 func AddValueToCacheAndRedisQueue(ctx context.Context, keyList string, message interface{}) (err error) {
 	if v, ok := LocalCache.Get(keyList); ok {
 		v.(*CacheQueue).Push(message)
@@ -19,7 +21,7 @@ func AddValueToCacheAndRedisQueue(ctx context.Context, keyList string, message i
 		LocalCache.Add(keyList, cq)
 	}
 	if _, err = g.Redis().LPush(ctx, keyList, message); err != nil {
-		g.Log().Error(ctx, err)
+		g.Log(cacheLogger).Error(ctx, err)
 		return errors.New("将文件内容存储到Redis 失败")
 	}
 	return nil
@@ -30,26 +32,25 @@ func GetValueFromCacheOrRedisQueue(ctx context.Context, listKey string) (interfa
 	if cachedQueue, ok := LocalCache.Get(listKey); ok {
 		queue, valid := cachedQueue.(*CacheQueue)
 		if !valid {
-			g.Log().Errorf(ctx, "Invalid cache type for key: %s, expected *CacheQueue", listKey)
+			g.Log(cacheLogger).Errorf(ctx, "Invalid cache type for key: %s, expected *CacheQueue", listKey)
 			//LocalCache.Remove(keyList) // Remove invalid cache
 			return fetchFromRedis(ctx, listKey)
 		}
 
 		// Check if the queue is empty
 		if queue.Len() == 0 {
-			g.Log().Warningf(ctx, "Local cache queue is empty for key: %s, removing cache and falling back to Redis", listKey)
+			g.Log(cacheLogger).Warningf(ctx, "Local cache queue is empty for key: %s, removing cache and falling back to Redis", listKey)
 			//LocalCache.Remove(keyList) // Remove empty cache
 			return fetchFromRedis(ctx, listKey)
 		}
 
 		// Attempt to pop a value from the queue
 		if value, ok := queue.Pop(); ok {
-			Debug(ctx, "fetch_task_by_local_cache", "cache_fetch_task.txt")
 			return value, nil
 		}
 
 		// If pop fails, log and fall back to Redis
-		g.Log().Errorf(ctx, "Failed to pop value from cache queue for key: %s, falling back to Redis", listKey)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to pop value from cache queue for key: %s, falling back to Redis", listKey)
 		//LocalCache.Remove(keyList) // Remove corrupted cache
 	}
 
@@ -62,13 +63,13 @@ func fetchFromRedis(ctx context.Context, listKey string) (interface{}, error) {
 	// Check the length of the Redis list
 	listLen, err := g.Redis().LLen(ctx, listKey)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to get length of Redis list for key '%s': %v", listKey, err)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to get length of Redis list for key '%s': %v", listKey, err)
 		return nil, fmt.Errorf("failed to get length of Redis list for key '%s': %w", listKey, err)
 	}
 
 	// If the list is empty, clean up and return an error
 	if listLen == 0 {
-		g.Log().Warningf(ctx, "Redis list '%s' is empty. Deleting the list and returning error.", listKey)
+		g.Log(cacheLogger).Warningf(ctx, "Redis list '%s' is empty. Deleting the list and returning error.", listKey)
 		if _, err := g.Redis().Del(ctx, listKey); err != nil {
 			g.Log().Errorf(ctx, "Failed to delete empty Redis list for key '%s': %v", listKey, err)
 			return nil, fmt.Errorf("failed to delete empty Redis list for key '%s': %w", listKey, err)
@@ -77,17 +78,17 @@ func fetchFromRedis(ctx context.Context, listKey string) (interface{}, error) {
 	}
 
 	// If the list has items, try to pop one
-	g.Log().Infof(ctx, "Processing tasks from Redis list '%s'. List length: %d", listKey, listLen)
+	g.Log(cacheLogger).Infof(ctx, "Processing tasks from Redis list '%s'. List length: %d", listKey, listLen)
 	// Local Queue is LPop -> Redis Queue use RPop
 	messageData, err := g.Redis().RPop(ctx, listKey)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to LPop from Redis list for key '%s': %v", listKey, err)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to LPop from Redis list for key '%s': %v", listKey, err)
 		return nil, fmt.Errorf("failed to pop value from Redis list for key '%s': %w", listKey, err)
 	}
 
 	// Validate the popped message data
 	if messageData == nil {
-		g.Log().Warningf(ctx, "No task found in Redis list '%s'. Queue is likely empty.", listKey)
+		g.Log(cacheLogger).Warningf(ctx, "No task found in Redis list '%s'. Queue is likely empty.", listKey)
 		return nil, fmt.Errorf("no task found in Redis list '%s'", listKey)
 	}
 	Debug(ctx, "fetch_task_by_redis_cache", "cache_redis_fetch_task.txt")
@@ -103,7 +104,7 @@ func AddValueToSafeSliceAndRedis(ctx context.Context, listKey string, message in
 		LocalCache.Add(listKey, cq)
 	}
 	if _, err = g.Redis().LPush(ctx, listKey, message); err != nil {
-		g.Log().Error(ctx, err)
+		g.Log(cacheLogger).Error(ctx, err)
 		return errors.New("将文件内容存储到Redis 失败")
 	}
 	return nil
@@ -114,7 +115,7 @@ func RetrieveValueFromCacheAndRedis(ctx context.Context, listKey string, index i
 	if v, ok := LocalCache.Get(listKey); ok {
 		slice, ok := v.(*SafeSlice)
 		if !ok {
-			g.Log().Errorf(ctx, "LocalCache for key [%s] is not of type SafeSlice", listKey)
+			g.Log(cacheLogger).Errorf(ctx, "LocalCache for key [%s] is not of type SafeSlice", listKey)
 			return nil, fmt.Errorf("invalid type in local cache for key [%s]", listKey)
 		}
 
@@ -124,13 +125,13 @@ func RetrieveValueFromCacheAndRedis(ctx context.Context, listKey string, index i
 			return message, nil
 		}
 
-		g.Log().Warningf(ctx, "Failed to get index [%d] from SafeSlice for key [%s]: %v", index, listKey, err)
+		g.Log(cacheLogger).Warningf(ctx, "Failed to get index [%d] from SafeSlice for key [%s]: %v", index, listKey, err)
 	}
 
 	// 如果本地缓存获取失败，从 Redis 中获取
 	v, err := g.Redis().LIndex(ctx, listKey, int64(index))
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to get index [%d] from Redis for key [%s]: %v", index, listKey, err)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to get index [%d] from Redis for key [%s]: %v", index, listKey, err)
 		return nil, fmt.Errorf("failed to get value from Redis for key [%s], index [%d]: %w", listKey, index, err)
 	}
 
@@ -190,29 +191,29 @@ func CheckMapExistsByCacheAndRedis(ctx context.Context, key, hashKey string) (bo
 		if localMap, ok := cacheValue.(*GenericMap); ok {
 			// 检查是否存在指定的 hashKey
 			if _, exists := localMap.Get(hashKey); exists {
-				g.Log().Infof(ctx, "Key '%s' found in local cache, hashKey '%s' exists", key, hashKey)
+				g.Log(cacheLogger).Infof(ctx, "Key '%s' found in local cache, hashKey '%s' exists", key, hashKey)
 				return true, nil
 			}
 		} else {
-			g.Log().Warningf(ctx, "Key '%s' exists in cache but cannot be converted to GenericMap", key)
+			g.Log(cacheLogger).Warningf(ctx, "Key '%s' exists in cache but cannot be converted to GenericMap", key)
 		}
 	}
 
 	// 如果本地缓存不存在或未命中，再从 Redis 检查
-	g.Log().Infof(ctx, "Checking Redis for key '%s' and hashKey '%s'", key, hashKey)
+	g.Log(cacheLogger).Infof(ctx, "Checking Redis for key '%s' and hashKey '%s'", key, hashKey)
 	exists, err := g.Redis().HExists(ctx, key, hashKey)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to check hashKey existence in Redis for key '%s': %v", key, err)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to check hashKey existence in Redis for key '%s': %v", key, err)
 		return false, err
 	}
 
 	// 返回 Redis 的检查结果
 	if exists > 0 {
-		g.Log().Infof(ctx, "Key '%s' and hashKey '%s' found in Redis", key, hashKey)
+		g.Log(cacheLogger).Infof(ctx, "Key '%s' and hashKey '%s' found in Redis", key, hashKey)
 		return true, nil
 	}
 
-	g.Log().Infof(ctx, "Key '%s' and hashKey '%s' not found in cache or Redis", key, hashKey)
+	g.Log(cacheLogger).Infof(ctx, "Key '%s' and hashKey '%s' not found in cache or Redis", key, hashKey)
 	return false, nil
 }
 
@@ -228,10 +229,10 @@ func SetMapValueToCacheAndRedis(ctx context.Context, key, hashKey string, messag
 	myMap.Set(hashKey, message)
 	_, err := g.Redis().HSet(ctx, key, map[string]interface{}{hashKey: message})
 	if err != nil {
-		g.Log().Error(ctx, "Failed to set hash fields:", err)
+		g.Log(cacheLogger).Error(ctx, "Failed to set hash fields:", err)
 		return err
 	}
-	g.Log().Info(ctx, "Hash fields set successfully")
+	g.Log(cacheLogger).Info(ctx, "Hash fields set successfully")
 	return nil
 }
 
@@ -273,7 +274,7 @@ func RemoveCacheAndRedisKey(ctx context.Context, key string) (err error) {
 		LocalCache.Remove(key)
 	}
 	if _, err = g.Redis().Del(ctx, key); err != nil {
-		g.Log().Error(ctx, err)
+		g.Log(cacheLogger).Error(ctx, err)
 		return errors.New("将文件内容从Redis删除 失败")
 	}
 	return nil
@@ -295,19 +296,19 @@ func RemoveCacheAndRedisHashField(ctx context.Context, key, hashKey string) erro
 	if cachedValue, exists := LocalCache.Get(key); exists {
 		if myMap, valid := cachedValue.(*GenericMap); valid {
 			myMap.Delete(hashKey)
-			g.Log().Infof(ctx, "Successfully deleted field '%s' from local cache for key '%s'", hashKey, key)
+			g.Log(cacheLogger).Infof(ctx, "Successfully deleted field '%s' from local cache for key '%s'", hashKey, key)
 		} else {
-			g.Log().Warningf(ctx, "Invalid type for cached value under key '%s'. Skipping local cache deletion.", key)
+			g.Log(cacheLogger).Warningf(ctx, "Invalid type for cached value under key '%s'. Skipping local cache deletion.", key)
 		}
 	}
 
 	// Attempt to delete the field from the Redis hash
 	if _, err := g.Redis().HDel(ctx, key, hashKey); err != nil {
-		g.Log().Errorf(ctx, "Failed to delete field '%s' from Redis hash '%s': %v", hashKey, key, err)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to delete field '%s' from Redis hash '%s': %v", hashKey, key, err)
 		return fmt.Errorf("failed to delete field '%s' from Redis hash '%s': %w", hashKey, key, err)
 	}
 
-	g.Log().Infof(ctx, "Successfully deleted field '%s' from Redis hash '%s'", hashKey, key)
+	g.Log(cacheLogger).Infof(ctx, "Successfully deleted field '%s' from Redis hash '%s'", hashKey, key)
 	return nil
 }
 
@@ -328,17 +329,17 @@ func CleanUpDeviceCache(ctx context.Context, cacheKeyPrefix, deviceNumber string
 	// Check if the cache exists
 	exists, err := CheckMapExistsByCacheAndRedis(ctx, cacheKey, hashKey)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to check device cache for device_number '%s' with prefix '%s': %v", deviceNumber, cacheKeyPrefix, err)
+		g.Log(cacheLogger).Errorf(ctx, "Failed to check device cache for device_number '%s' with prefix '%s': %v", deviceNumber, cacheKeyPrefix, err)
 		return fmt.Errorf("failed to check device cache: %w", err)
 	}
 
 	// Remove the cache if it exists
 	if exists {
 		if err := RemoveCacheAndRedisHashField(ctx, cacheKey, hashKey); err != nil {
-			g.Log().Errorf(ctx, "Failed to remove device cache for device_number '%s' with prefix '%s': %v", deviceNumber, cacheKeyPrefix, err)
+			g.Log(cacheLogger).Errorf(ctx, "Failed to remove device cache for device_number '%s' with prefix '%s': %v", deviceNumber, cacheKeyPrefix, err)
 			return fmt.Errorf("failed to remove device cache: %w", err)
 		}
-		g.Log().Infof(ctx, "Removed device cache for device_number '%s' with prefix '%s'", deviceNumber, cacheKeyPrefix)
+		g.Log(cacheLogger).Infof(ctx, "Removed device cache for device_number '%s' with prefix '%s'", deviceNumber, cacheKeyPrefix)
 	}
 
 	return nil

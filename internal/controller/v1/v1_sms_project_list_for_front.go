@@ -8,5 +8,5 @@ import (
 )
 
 func (c *ControllerSms) ProjectListForFront(ctx context.Context, req *sms.ProjectListForFrontReq) (res *sms.ProjectListForFrontRes, err error) {
-	return service.MainControllerProjectManagement().ProjectListListForFront(ctx, req)
+	return service.MainControllerProjectManagement().GetProjectList(ctx, req)
 }

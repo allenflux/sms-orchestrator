@@ -8,6 +8,7 @@ import (
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
 	"sms_backend/library/liberr"
+	"time"
 )
 
 type sLog struct{}
@@ -20,12 +21,15 @@ func (s *sLog) GetLogList(ctx context.Context, req *log.ListReq) (res *log.ListR
 	err = g.Try(ctx, func(ctx context.Context) {
 		orm := dao.Log.Ctx(ctx)
 		if len(req.DateRange) == 2 {
+			if req.DateRange[0].String() == req.DateRange[1].String() {
+				req.DateRange[1] = req.DateRange[1].Add(24 * time.Hour)
+			}
 			orm = orm.WhereBetween(dao.Log.Columns().CreatedAt, req.DateRange[0], req.DateRange[1])
 		}
 		if service.Context().GetSystemId(ctx) != 1 {
 			orm = orm.Where(dao.Log.Columns().SystemId, service.Context().GetSystemId(ctx))
 		}
-		if req.PageNum == 0 && req.PageSize == 0 {
+		if req.PageNum != 0 && req.PageSize != 0 {
 			orm = orm.Page(req.PageNum, req.PageSize)
 		}
 		if req.OrderBy != "" {

@@ -87,9 +87,9 @@ type DeviceListResData struct {
 	ActiveDays    int    `json:"active_days"`
 	OwnerAccount  string `json:"owner_account"`
 	AssignedItems string `json:"assigned_items"`
-	SentStatus    int    `json:"sent_status" dc:"1 空闲 2 异常 3 占用"`
+	SentStatus    int    `json:"sent_status" dc:"1-异常 2-占用 3-空闲"`
 	QuantitySent  string `json:"quantity_sent"`
-	DeviceStatus  int    `json:"device_status" dc:"1 空闲 2 异常 3 占用"`
+	DeviceStatus  int    `json:"device_status" dc:"设备状态，1-异常 2-正常"`
 	ActiveTime    string `json:"active_time"`
 }
 type DeviceListRes struct {
@@ -107,8 +107,8 @@ type AllocateDevice2ProjectRes struct {
 
 type AllocateAccount2ProjectReq struct {
 	g.Meta    `path:"/account/project" tags:"设备列表" method:"post" dc:"分配子账号给项目" `
-	AccountId string `json:"account_id" v:"required" dc:"子账号id"`
-	ProjectId int    `json:"project_id" v:"required"`
+	AccountId int `json:"account_id" v:"required" dc:"子账号id"`
+	ProjectId int `json:"project_id" v:"required"`
 }
 type AllocateAccount2ProjectRes struct {
 }

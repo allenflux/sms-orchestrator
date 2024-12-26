@@ -77,130 +77,133 @@ type FileData struct {
 	Content           []string `json:"content"`
 }
 
-func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (res *sms.SubTaskCreateRes, err error) {
+// TaskCreate handles the creation of a new task, including file parsing, validation, and distribution.
+//
+// Parameters:
+// - ctx: The context for handling the request.
+// - req: The request containing task details, group ID, and the uploaded file.
+//
+// Returns:
+// - *sms.SubTaskCreateRes: The response containing the created task ID.
+// - error: An error if the operation fails.
+func (s *sSubControllerSmsManagement) TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (*sms.SubTaskCreateRes, error) {
+	// Step 1: Fetch account details
+	var account entity.User
+	if err := dao.User.Ctx(ctx).Where("id = ?", req.SubUserId).Scan(&account); err != nil {
+		g.Log().Errorf(ctx, "Failed to query User for AccountId=%d: %v", req.SubUserId, err)
+		return nil, fmt.Errorf("failed to query account details: %w", err)
+	}
+	accountName := account.Name
 
-	c := 0
+	// Step 2: Validate group information
 	var group entity.SubGroup
-	if err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).ScanAndCount(&group, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询SubGroup 错误")
-	}
-	if c == 0 {
-		return nil, errors.New("未查询到相关group id，请检查 group id是否正确")
+	count := 0
+	if err := dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).ScanAndCount(&group, &count, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query SubGroup for GroupID=%d: %v", req.GroupID, err)
+		return nil, fmt.Errorf("failed to query group details: %w", err)
+	} else if count == 0 {
+		return nil, errors.New("invalid group ID: no matching record found")
 	}
 
+	// Step 3: Validate devices in the group
 	var devices []*entity.DeviceList
-	if err = dao.DeviceList.Ctx(ctx).Where("group_id = ?", group.Id).ScanAndCount(&devices, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询DeviceList错误" + err.Error())
-	}
-	if c == 0 {
-		return nil, errors.New("当前分组无可用设备 请分配设备后再上传任务")
+	if err := dao.DeviceList.Ctx(ctx).Where("group_id = ?", group.Id).ScanAndCount(&devices, &count, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query DeviceList for GroupID=%d: %v", group.Id, err)
+		return nil, fmt.Errorf("failed to query device list: %w", err)
+	} else if count == 0 {
+		return nil, errors.New("no available devices in the selected group")
 	}
 
+	// Step 4: Validate project information
 	var project entity.ProjectList
-	c = 0
-	if err = dao.ProjectList.Ctx(ctx).Where("id=?", group.ProjectId).ScanAndCount(&project, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询ProjectList错误")
-	}
-	if c == 0 {
-		return nil, errors.New("所查询的Project 不存在 请检查 Project Id 是否正确")
-	}
-	if c, err := dao.SmsMissionReport.Ctx(ctx).Where("task_name = ?", req.TaskName).Count(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, err
-	} else if c != 0 {
-		return nil, errors.New("重复的任务名")
+	if err := dao.ProjectList.Ctx(ctx).Where("id=?", group.ProjectId).ScanAndCount(&project, &count, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query ProjectList for ProjectId=%d: %v", group.ProjectId, err)
+		return nil, fmt.Errorf("failed to query project details: %w", err)
+	} else if count == 0 {
+		return nil, errors.New("invalid project ID: no matching record found")
 	}
 
+	// Step 5: Validate task name and file
+	if count, err := dao.SmsMissionReport.Ctx(ctx).Where("task_name = ?", req.TaskName).Count(); err != nil {
+		g.Log().Errorf(ctx, "Failed to validate task name '%s': %v", req.TaskName, err)
+		return nil, fmt.Errorf("failed to validate task name: %w", err)
+	} else if count > 0 {
+		return nil, errors.New("duplicate task name")
+	}
+
+	// Save uploaded file
 	filename, err := req.File.Save(consts.TaskFilePath, true)
 	if err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("文件存储错误")
-	}
-	// Check 文件名称是否重复
-	if c, err := dao.SmsMissionReport.Ctx(ctx).Where("file_name = ?", filename).Count(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, err
-	} else if c != 0 {
-		return nil, errors.New("文件名称随机重复")
+		g.Log().Errorf(ctx, "Failed to save file: %v", err)
+		return nil, fmt.Errorf("failed to save file: %w", err)
 	}
 
+	// Validate file name uniqueness
+	if count, err := dao.SmsMissionReport.Ctx(ctx).Where("file_name = ?", filename).Count(); err != nil {
+		g.Log().Errorf(ctx, "Failed to validate file name '%s': %v", filename, err)
+		return nil, fmt.Errorf("failed to validate file name: %w", err)
+	} else if count > 0 {
+		return nil, errors.New("duplicate file name")
+	}
+
+	// Step 6: Parse and validate file content
 	content, err := ioutil.ReadFile(consts.TaskFilePath + "/" + filename)
 	if err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("文件打开错误")
+		g.Log().Errorf(ctx, "Failed to read file '%s': %v", filename, err)
+		return nil, fmt.Errorf("failed to read file: %w", err)
 	}
-	//g.Log().Infof(ctx, "content 文件内容 = %s", string(content))
-	// Now let's unmarshall the data into `payload`
+
 	var payload FileData
-	err = json.Unmarshal(content, &payload)
-	if err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("文件解析json错误")
+	if err = json.Unmarshal(content, &payload); err != nil {
+		g.Log().Errorf(ctx, "Failed to parse JSON content in file '%s': %v", filename, err)
+		return nil, fmt.Errorf("failed to parse JSON content: %w", err)
 	}
 
 	if len(payload.Content) == 0 || len(payload.TargetPhoneNumber) == 0 || len(payload.Content) != len(payload.TargetPhoneNumber) {
-		return nil, errors.New("文件格式错误")
+		return nil, errors.New("invalid file format: content and phone numbers mismatch")
 	}
 
-	data := entity.SmsMissionReport{
-		ProjectId:       group.ProjectId,
-		TaskName:        req.TaskName,
-		GroupId:         req.GroupID,
-		FileName:        filename,
-		TaskStatus:      1,
-		SmsQuantity:     len(payload.Content),
-		SurplusQuantity: len(payload.TargetPhoneNumber),
-		QuantitySent:    0,
-		//todo 根据子账号id查询子账号名称
-		AssociatedAccount:   "todo 根据子账号id查询子账号名称",
+	// Step 7: Create and save task
+	task := entity.SmsMissionReport{
+		ProjectId:           group.ProjectId,
+		TaskName:            req.TaskName,
+		GroupId:             req.GroupID,
+		FileName:            filename,
+		TaskStatus:          1,
+		SmsQuantity:         len(payload.Content),
+		SurplusQuantity:     len(payload.TargetPhoneNumber),
+		QuantitySent:        0,
+		AssociatedAccount:   accountName,
 		IntervalTime:        req.IntervalTime,
 		StartTime:           req.TimingStartTime,
 		ProjectName:         project.ProjectName,
 		AssociatedAccountId: req.SubUserId,
 	}
-	g.Log().Info(ctx, data)
-	var mrID int64
-	if mrID, err = dao.SmsMissionReport.Ctx(ctx).Data(data).InsertAndGetId(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("插入DB SmsMissionReport 错误")
-	}
-	res = &sms.SubTaskCreateRes{
-		ID: mrID,
+
+	taskID, err := dao.SmsMissionReport.Ctx(ctx).Data(task).InsertAndGetId()
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to insert task into DB: %v", err)
+		return nil, fmt.Errorf("failed to insert task: %w", err)
 	}
 
-	//将文件存储到 Redis DB
-	g.Log().Infof(ctx, "filename===%s", filename)
-	// 将任务列表分割成小队列
-	// 查询当前组下设备的的Device 信息，然后将任务正态分布到每台Device上
+	// Step 8: Distribute tasks to devices
 	devicesLen := len(devices)
-	j := 0
-	for i := range payload.TargetPhoneNumber {
+	for i, phoneNumber := range payload.TargetPhoneNumber {
 		message := &sms.SubPostConversationRecordData{
-			TaskID:            mrID,
+			TaskID:            taskID,
 			Content:           payload.Content[i],
-			DeviceNumber:      devices[j].DeviceNumber,
-			TargetPhoneNumber: payload.TargetPhoneNumber[i],
+			DeviceNumber:      devices[i%devicesLen].DeviceNumber,
+			TargetPhoneNumber: phoneNumber,
 		}
-		j += 1
-		if j == devicesLen {
-			j = 0
-		}
-		// 生成任务队列
-		//keyList := filename + message.DeviceNumber
-		keyList := filename
 
-		if err = utility.AddValueToCacheAndRedisQueue(ctx, keyList, message); err != nil {
-			return nil, err
+		if err := utility.AddValueToCacheAndRedisQueue(ctx, filename, message); err != nil {
+			g.Log().Errorf(ctx, "Failed to distribute task to Redis queue for DeviceNumber='%s': %v", message.DeviceNumber, err)
+			return nil, fmt.Errorf("failed to distribute task to Redis queue: %w", err)
 		}
-		//if err = utility.AddValueToSafeSliceAndRedis(ctx, keyList, message); err != nil {
-		//	return nil, err
-		//}
 	}
-	return
 
+	g.Log().Infof(ctx, "Successfully created task '%s' with ID=%d", req.TaskName, taskID)
+	return &sms.SubTaskCreateRes{ID: taskID}, nil
 }
 
 // Download File

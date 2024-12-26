@@ -297,3 +297,34 @@ func updateDeviceGroup(ctx context.Context, tx gdb.TX, deviceID int, groupName s
 	g.Log().Infof(ctx, "Successfully updated DeviceID=%d with GroupName='%s' and GroupID=%d", deviceID, groupName, groupID)
 	return nil
 }
+
+// GetProjectList retrieves the list of projects for the front-end, scoped by the SubUserID.
+//
+// Parameters:
+// - ctx: The context for handling the request.
+// - req: The request containing the SubUserID.
+//
+// Returns:
+// - *sms.SubProjectListForFrontRes: The response containing the list of projects.
+// - error: An error if the operation fails.
+func (s *sSubControllerDeviceManagement) GetProjectList(ctx context.Context, req *sms.SubProjectListForFrontReq) (*sms.SubProjectListForFrontRes, error) {
+	// Step 1: Prepare the main controller request
+	mainReq := &sms.ProjectListForFrontReq{
+		SubUserID: req.SubUserID,
+	}
+
+	// Step 2: Delegate to the main controller's service
+	mainRes, err := service.MainControllerProjectManagement().GetProjectList(ctx, mainReq)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to retrieve project list for SubUserID=%d: %v", req.SubUserID, err)
+		return nil, fmt.Errorf("failed to retrieve project list: %w", err)
+	}
+
+	// Step 3: Prepare the response
+	res := &sms.SubProjectListForFrontRes{
+		ProjectListForFrontRes: mainRes,
+	}
+
+	g.Log().Infof(ctx, "Successfully retrieved project list for SubUserID=%d", req.SubUserID)
+	return res, nil
+}

@@ -22,6 +22,8 @@ func init() {
 
 type sCareerDeviceManagement struct{}
 
+const careerLogger = "career"
+
 // DeviceRegister handles the registration of a new device.
 // It checks if the device is already registered in the database or exists in the cache,
 // and if not, registers it in the database and removes it from the cache.
@@ -39,34 +41,35 @@ func (s *sCareerDeviceManagement) DeviceRegister(ctx context.Context, req *caree
 		Number:       req.PhoneNumber,
 		DeviceNumber: req.DeviceNumber,
 		ActiveTime:   req.ActiveTime,
+		DeviceStatus: 2, // Normal
 	}
 
 	// Check if the device is already registered in the database
 	count, err := dao.DeviceList.Ctx(ctx).Where("device_number = ?", device.DeviceNumber).Count()
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to check device registration for device_number '%s': %v", device.DeviceNumber, err)
+		g.Log(careerLogger).Errorf(ctx, "Failed to check device registration for device_number '%s': %v", device.DeviceNumber, err)
 		return nil, fmt.Errorf("failed to check device registration: %w", err)
 	}
 	if count > 0 {
-		g.Log().Warningf(ctx, "Device already registered with device_number '%s'", device.DeviceNumber)
+		g.Log(careerLogger).Warningf(ctx, "Device already registered with device_number '%s'", device.DeviceNumber)
 		return nil, errors.New("device already registered")
 	}
 
 	// Check if the device exists in the unregistered cache and remove it if found
 	if err := utility.CleanUpDeviceCache(ctx, utility.CachePrefixUnregisteredDevice, device.DeviceNumber); err != nil {
-		g.Log().Errorf(ctx, "Failed to clean up unregistered device cache for device_number '%s': %v", device.DeviceNumber, err)
+		g.Log(careerLogger).Errorf(ctx, "Failed to clean up unregistered device cache for device_number '%s': %v", device.DeviceNumber, err)
 		return nil, err
 	}
 
 	// Register the device in the database
 	rowID, err := dao.DeviceList.Ctx(ctx).Data(device).InsertAndGetId()
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to register device in the database for device_number '%s': %v", device.DeviceNumber, err)
+		g.Log(careerLogger).Errorf(ctx, "Failed to register device in the database for device_number '%s': %v", device.DeviceNumber, err)
 		return nil, fmt.Errorf("failed to register device: %w", err)
 	}
 
 	// Return the registration response
-	g.Log().Infof(ctx, "Successfully registered device with ID '%d' and device_number '%s'", rowID, device.DeviceNumber)
+	g.Log(careerLogger).Infof(ctx, "Successfully registered device with ID '%d' and device_number '%s'", rowID, device.DeviceNumber)
 	return &career.RegisterRes{
 		ID: rowID,
 	}, nil
@@ -94,7 +97,7 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	devicePayload := &utility.SmsDeviceNumberPayload{DeviceNumber: req.DeviceNumber}
 	select {
 	case utility.SmsDeviceNumberPayloadChan <- devicePayload:
-		g.Log().Infof(ctx, "Device payload sent to processing channel: %s", req.DeviceNumber)
+		g.Log(careerLogger).Infof(ctx, "Device payload sent to processing channel: %s", req.DeviceNumber)
 	default:
 		return nil, fmt.Errorf("failed to send device payload to channel for device: %s", req.DeviceNumber)
 	}
@@ -103,10 +106,10 @@ func (s *sCareerDeviceManagement) FetchTasks(ctx context.Context, req *career.Fe
 	select {
 	case resChan := <-utility.SmsFetchTaskPayloadChan:
 		if resChan.Err != nil {
-			g.Log().Errorf(ctx, "Failed to fetch tasks for device '%s': %v", req.DeviceNumber, resChan.Err)
+			g.Log(careerLogger).Errorf(ctx, "Failed to fetch tasks for device '%s': %v", req.DeviceNumber, resChan.Err)
 			return nil, resChan.Err
 		}
-		g.Log().Infof(ctx, "Successfully fetched tasks for device '%s'", req.DeviceNumber)
+		g.Log(careerLogger).Infof(ctx, "Successfully fetched tasks for device '%s'", req.DeviceNumber)
 		return resChan.Res, nil
 	case <-ctx.Done():
 		return nil, fmt.Errorf("context canceled while waiting for task response for device: %s", req.DeviceNumber)
@@ -129,13 +132,13 @@ func checkDeviceStatusInCache(ctx context.Context, cachePrefix, deviceNumber str
 	// Check existence in cache or Redis
 	exists, err := utility.CheckMapExistsByCacheAndRedis(ctx, cacheKey, hashKey)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to check device status in cache or Redis (cacheKey: %s, hashKey: %s): %v", cacheKey, hashKey, err)
+		g.Log(careerLogger).Errorf(ctx, "Failed to check device status in cache or Redis (cacheKey: %s, hashKey: %s): %v", cacheKey, hashKey, err)
 		return fmt.Errorf("failed to check device status: %w", err)
 	}
 
 	// Log a warning if the device is already marked
 	if exists {
-		g.Log().Warningf(ctx, "Device already marked in cache or Redis (cacheKey: %s, hashKey: %s)", cacheKey, hashKey)
+		g.Log(careerLogger).Warningf(ctx, "Device already marked in cache or Redis (cacheKey: %s, hashKey: %s)", cacheKey, hashKey)
 		return fmt.Errorf("device already marked for cacheKey: %s, hashKey: %s", cacheKey, hashKey)
 	}
 
@@ -155,14 +158,14 @@ func (s *sCareerDeviceManagement) ReportTaskResult(ctx context.Context, req *car
 	}
 
 	// Log success and return a response
-	g.Log().Infof(ctx, "Successfully processed TaskId=%d for DeviceNumber=%s", req.TaskId, req.DeviceNumber)
+	g.Log(careerLogger).Infof(ctx, "Successfully processed TaskId=%d for DeviceNumber=%s", req.TaskId, req.DeviceNumber)
 	return &career.ReportTaskResultRes{}, nil
 }
 
 // Helper: Validate the SendStatus
 func validateSendStatus(ctx context.Context, sendStatus int, taskId int) error {
 	if !utility.SentStatus(sendStatus).IsValid() {
-		g.Log().Errorf(ctx, "Invalid SendStatus=%d for TaskId=%d", sendStatus, taskId)
+		g.Log(careerLogger).Errorf(ctx, "Invalid SendStatus=%d for TaskId=%d", sendStatus, taskId)
 		return errors.New("SendStatus 验证错误，请提交合法的 SendStatus 值")
 	}
 	return nil
@@ -172,13 +175,13 @@ func validateSendStatus(ctx context.Context, sendStatus int, taskId int) error {
 func sendToTaskChannel(ctx context.Context, taskPayload *utility.SmsTaskPayload) error {
 	select {
 	case utility.SmsTaskPayloadChan <- taskPayload:
-		g.Log().Infof(ctx, "Task payload sent to channel successfully: TaskId=%d", taskPayload.TaskID)
+		g.Log(careerLogger).Infof(ctx, "Task payload sent to channel successfully: TaskId=%d", taskPayload.TaskID)
 		return nil
 	case <-ctx.Done():
-		g.Log().Errorf(ctx, "Failed to send task payload to channel: TaskId=%d, context canceled", taskPayload.TaskID)
+		g.Log(careerLogger).Errorf(ctx, "Failed to send task payload to channel: TaskId=%d, context canceled", taskPayload.TaskID)
 		return fmt.Errorf("failed to send task payload to channel: TaskId=%d, context canceled", taskPayload.TaskID)
 	default:
-		g.Log().Errorf(ctx, "Task payload channel is full, failed to send TaskId=%d", taskPayload.TaskID)
+		g.Log(careerLogger).Errorf(ctx, "Task payload channel is full, failed to send TaskId=%d", taskPayload.TaskID)
 		return fmt.Errorf("task payload channel is full, failed to send TaskId=%d", taskPayload.TaskID)
 	}
 }
@@ -205,9 +208,9 @@ func (s *sCareerDeviceManagement) ReportReceiveContent(ctx context.Context, req 
 	// Send the payload to the SMS processing channel
 	select {
 	case utility.ReceivedSmsPayloadChan <- payload:
-		g.Log().Infof(ctx, "Received SMS payload added to processing queue: %+v", payload)
+		g.Log(careerLogger).Infof(ctx, "Received SMS payload added to processing queue: %+v", payload)
 	case <-ctx.Done():
-		g.Log().Warning(ctx, "Context canceled before payload could be added to the processing queue.")
+		g.Log(careerLogger).Warning(ctx, "Context canceled before payload could be added to the processing queue.")
 		return nil, fmt.Errorf("context canceled before adding payload to queue")
 	}
 
@@ -216,14 +219,14 @@ func (s *sCareerDeviceManagement) ReportReceiveContent(ctx context.Context, req 
 	case resp := <-utility.ReportReceiveContentResPayloadChan:
 		// Log and return the result
 		if resp.Err != nil {
-			g.Log().Errorf(ctx, "Error processing SMS payload: %+v, error: %v", payload, resp.Err)
+			g.Log(careerLogger).Errorf(ctx, "Error processing SMS payload: %+v, error: %v", payload, resp.Err)
 		} else {
-			g.Log().Infof(ctx, "Successfully processed SMS payload: %+v", payload)
+			g.Log(careerLogger).Infof(ctx, "Successfully processed SMS payload: %+v", payload)
 		}
 		return resp.Res, resp.Err
 
 	case <-ctx.Done():
-		g.Log().Warning(ctx, "Context canceled while waiting for processing result.")
+		g.Log(careerLogger).Warning(ctx, "Context canceled while waiting for processing result.")
 		return nil, fmt.Errorf("context canceled while waiting for processing result")
 	}
 }

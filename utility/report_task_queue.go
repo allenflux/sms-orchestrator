@@ -15,6 +15,8 @@ import (
 
 type SentStatus int
 
+const reportTaskQueueLogger = "reportTaskQueue"
+
 const (
 	UnknownSentStatus SentStatus = iota
 	SentSuccess
@@ -71,17 +73,16 @@ type SmsTaskPayload struct {
 }
 
 func UpdateTaskResultAndLog(ctx context.Context, taskID int, targetPhoneNumber, deviceNumber, content string, sendStatus int, startTime *gtime.Time, reason string) error {
-	Debug(ctx, content+"--DeviceNumber--"+deviceNumber, "all_submit.txt")
 	var mission entity.SmsMissionReport
 	count := 0
 	if err := dao.SmsMissionReport.Ctx(ctx).
 		Where("id = ?", taskID).
 		ScanAndCount(&mission, &count, false); err != nil {
-		g.Log().Errorf(ctx, "Failed to query SmsMissionReport for TaskId=%d: %v", taskID, err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to query SmsMissionReport for TaskId=%d: %v", taskID, err)
 		return fmt.Errorf("查询 SmsMissionReport 失败: %w", err)
 	}
 	if count == 0 {
-		g.Log().Warningf(ctx, "Invalid TaskId=%d: Task does not exist", taskID)
+		g.Log(reportTaskQueueLogger).Warningf(ctx, "Invalid TaskId=%d: Task does not exist", taskID)
 		return errors.New("非法提交: 不存在的任务 ID")
 	}
 
@@ -105,21 +106,29 @@ func UpdateTaskResultAndLog(ctx context.Context, taskID int, targetPhoneNumber, 
 	if recordCount, err := dao.SmsMissionRecord.Ctx(ctx).
 		Where("row_hash = ?", rowHash).
 		Count(); err != nil {
-		g.Log().Errorf(ctx, "Failed to query SmsMissionRecord for RowHash=%s: %v", rowHash, err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to query SmsMissionRecord for RowHash=%s: %v", rowHash, err)
 		return fmt.Errorf("查询 SmsMissionRecord 错误: %w", err)
 	} else if recordCount > 0 {
-		g.Log().Warningf(ctx, "Duplicate submission detected for RowHash=%s", rowHash)
-		Debug(ctx, content+"--DeviceNumber--"+deviceNumber, "redundant_submit.txt")
+		g.Log(reportTaskQueueLogger).Warningf(ctx, "Duplicate submission detected for RowHash=%s", rowHash)
 		return errors.New("数据记录已存在，请勿重复提交")
 	}
 
 	// 校验 SendStatus 值
 	if !SentStatus(sendStatus).IsValid() {
-		g.Log().Errorf(ctx, "Invalid SendStatus=%d for TaskId=%d", sendStatus, taskID)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Invalid SendStatus=%d for TaskId=%d", sendStatus, taskID)
 		Debug(ctx, fmt.Errorf("Invalid SendStatus=%d for TaskId=%d ", sendStatus, taskID).Error(), "filter.txt")
 		return errors.New("SendStatus 验证错误，请提交合法的 SendStatus 值")
 	}
 	status := SentStatus(sendStatus).Value()
+
+	// Retrieve Device information by DeviceNumber
+	var device entity.DeviceList
+	if err := dao.DeviceList.Ctx(ctx).
+		Where("device_number = ?", deviceNumber).
+		Scan(&device); err != nil {
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to fetch Device information for DeviceNumber='%s': %v", deviceNumber, err)
+		return fmt.Errorf("failed to fetch Device information for DeviceNumber='%s': %w", deviceNumber, err)
+	}
 
 	// 准备插入 SmsMissionRecord 数据
 	recordData := entity.SmsMissionRecord{
@@ -127,7 +136,7 @@ func UpdateTaskResultAndLog(ctx context.Context, taskID int, targetPhoneNumber, 
 		SubTaskId:           taskID,
 		TargetPhoneNumber:   targetPhoneNumber,
 		DeviceNumber:        deviceNumber,
-		SmsTopic:            "Placeholder 当前任务无 Topic",
+		SmsTopic:            "Placeholder ~Topic",
 		SmsContent:          content,
 		SmsStatus:           strconv.Itoa(sendStatus),
 		AssociatedAccount:   mission.AssociatedAccount,
@@ -158,71 +167,84 @@ func UpdateTaskResultAndLog(ctx context.Context, taskID int, targetPhoneNumber, 
 	// 开启事务
 	tx, err := g.DB().Begin(ctx)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to start transaction: %v", err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to start transaction: %v", err)
 		return fmt.Errorf("事务操作开启失败: %w", err)
 	}
 	defer func() {
 		if p := recover(); p != nil {
 			_ = tx.Rollback()
-			Debug(ctx, fmt.Errorf("数据库操作失败: %w", err).Error(), "db_rollback_error.txt")
-			g.Log().Errorf(ctx, "Transaction rolled back due to panic: %v", p)
+			g.Log(reportTaskQueueLogger).Errorf(ctx, "Transaction rolled back due to panic: %v", p)
 		}
 	}()
 
 	// 插入 SmsMissionRecord 数据
 	rawId, err := tx.Model("sms_mission_record").Ctx(ctx).Data(recordData).InsertAndGetId()
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to : SmsMissionRecord: %v", err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to : SmsMissionRecord: %v", err)
 		_ = tx.Rollback()
-		Debug(ctx, fmt.Errorf("插入 SmsMissionRecord 失败: %w", err).Error(), "filter.txt")
 		return fmt.Errorf("插入 SmsMissionRecord 失败: %w", err)
 	}
-	g.Log().Infof(ctx, "Inserted SmsMissionRecord with ID=%d", rawId)
+	g.Log(reportTaskQueueLogger).Infof(ctx, "Inserted SmsMissionRecord with ID=%d", rawId)
 
 	// 更新 SmsMissionReport 表，根据发送状态调整数量
 	var updateData g.Map
+	var updateDeviceData g.Map
 	switch status {
 	case SentSuccess:
 		updateData = g.Map{
 			"quantity_sent":         mission.QuantitySent + 1,
 			"sent_success_quantity": mission.SentSuccessQuantity + 1,
 		}
+		updateDeviceData = g.Map{
+			"quantity_sent": device.QuantitySent + 1,
+			"quantity_all":  device.QuantityAll + 1,
+			"sent_status":   3, // update status to idle
+		}
 	case SentFailure:
 		updateData = g.Map{
 			"quantity_sent":      mission.QuantitySent + 1,
 			"sent_fail_quantity": mission.SentFailQuantity + 1,
 		}
+		updateDeviceData = g.Map{
+			"quantity_all": device.QuantityAll + 1,
+			"sent_status":  3, // update status to idle
+		}
 	default:
-		g.Log().Errorf(ctx, "Invalid SentStatus: %d", status)
-		Debug(ctx, errors.New("未知的发送状态，请检查验证逻辑是否成功").Error(), "filter.txt")
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Invalid SentStatus: %d", status)
 		_ = tx.Rollback()
 		return errors.New("未知的发送状态，请检查验证逻辑是否成功")
 	}
 
 	//Debug(ctx, strconv.Itoa(mission.QuantitySent+1)+"---- quantity_sent", "quantity_sent.txt")
-	Debug(ctx, fmt.Sprintf("fetch_task %d", mission.QuantitySent+1), "fetch_task.txt")
 
 	// 更新 SmsMissionReport
 	if _, err := tx.Model("sms_mission_report").Ctx(ctx).Data(updateData).Where("id = ?", mission.Id).Update(); err != nil {
-		g.Log().Errorf(ctx, "Failed to update SmsMissionReport for MissionId=%d: %v", mission.Id, err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to update SmsMissionReport for MissionId=%d: %v", mission.Id, err)
 		_ = tx.Rollback()
 		return fmt.Errorf("更新 SmsMissionReport 失败: %w", err)
 	}
 
+	// 更新 DeviceList
+	if _, err := tx.Model("device_list").Ctx(ctx).Data(updateDeviceData).Where("device_number = ?", deviceNumber).Update(); err != nil {
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to update DeviceList for DeviceNumber='%s': %v", deviceNumber, err)
+		_ = tx.Rollback()
+		return fmt.Errorf("failed to update DeviceList for DeviceNumber='%s': %w", deviceNumber, err)
+	}
+
 	// 插入 SmsChartLog 数据
 	if _, err := tx.Model("sms_chart_log").Ctx(ctx).Data(chartLogData).Insert(); err != nil {
-		g.Log().Errorf(ctx, "Failed to insert SmsChartLog: %v", err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to insert SmsChartLog: %v", err)
 		_ = tx.Rollback()
 		return fmt.Errorf("插入 SmsChartLog 失败: %w", err)
 	}
 
 	// 提交事务
 	if err := tx.Commit(); err != nil {
-		g.Log().Errorf(ctx, "Failed to commit transaction: %v", err)
+		g.Log(reportTaskQueueLogger).Errorf(ctx, "Failed to commit transaction: %v", err)
 		return fmt.Errorf("事务提交失败: %w", err)
 	}
 
-	g.Log().Infof(ctx, "Transaction successfully committed for TaskId=%d", mission.Id)
+	g.Log(reportTaskQueueLogger).Infof(ctx, "Transaction successfully committed for TaskId=%d", mission.Id)
 	return nil
 }
 
@@ -233,21 +255,20 @@ func ConsumerReportTaskResult(ctx context.Context, taskChan <-chan *SmsTaskPaylo
 		select {
 		case taskData, ok := <-taskChan: // 从管道中获取任务
 			if !ok {
-				g.Log().Info(ctx, "Task channel is closed, stopping consumer")
+				g.Log(reportTaskQueueLogger).Info(ctx, "Task channel is closed, stopping consumer")
 				return
 			}
 			// 处理任务 taskID int, targetPhoneNumber, deviceNumber, content string, sendStatus int, startTime *gtime.Time, reason string
 			if err := UpdateTaskResultAndLog(ctx, taskData.TaskID, taskData.TargetPhoneNumber, taskData.DeviceNumber, taskData.Content, taskData.SendStatus, taskData.StartTime, taskData.Reason); err != nil {
-				g.Log().Errorf(ctx, "ReportTaskResultDBAction Error: %v", err)
-				Debug(ctx, fmt.Errorf("数据库操作失败: %w", err).Error(), "db_error.txt")
+				g.Log(reportTaskQueueLogger).Errorf(ctx, "ReportTaskResultDBAction Error: %v", err)
+
 			} else {
-				g.Log().Infof(ctx, "Task successfully processed: %+v", taskData)
-				Debug(ctx, fmt.Errorf(" Task successfully processed: %+v", taskData).Error(), "db_success.txt")
+				g.Log(reportTaskQueueLogger).Infof(ctx, "Task successfully processed: %+v", taskData)
+
 			}
 
 		case <-ctx.Done(): // 监听 context 的取消信号
-			g.Log().Info(ctx, "Consumer stopped due to context cancellation")
-			Debug(ctx, "chan list len", "chan_done.txt")
+			g.Log(reportTaskQueueLogger).Info(ctx, "Consumer stopped due to context cancellation")
 			return
 		}
 	}

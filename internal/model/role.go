@@ -21,8 +21,9 @@ type RolePermission struct {
 }
 
 type Permission struct {
-	g.Meta   `orm:"table:permission"`
-	Id       int    `json:"id"         orm:"id"         description:""`        //
-	Function string `json:"function"   orm:"function"   description:"功能名称"`    // 功能名称
-	Redirect string `json:"redirect"   orm:"redirect"   description:"路由重定向地址"` // 路由重定向地址
+	g.Meta `orm:"table:permission"`
+	Id     int `json:"id"         orm:"id"         description:""` //
+	//Function string `json:"function"   orm:"function"   description:"功能名称"`       // 功能名称
+	//Redirect string `json:"redirect"   orm:"redirect"   description:"路由重定向地址"` // 路由重定向地址
+	Title string `json:"title"      orm:"title"      description:"功能名称"` // 功能名称
 }

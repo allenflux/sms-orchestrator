@@ -24,6 +24,8 @@ type ReportReceiveContentResPayload struct {
 	Err error
 }
 
+const receiveTaskQueueLogger = "receiveTaskQueue"
+
 // Define channels for received SMS tasks and their results
 
 var ReceivedSmsPayloadChan = make(chan *ReceivedSmsPayload, 100)
@@ -40,7 +42,7 @@ func ProcessReceivedSmsQueue(ctx context.Context, taskChan chan *ReceivedSmsPayl
 		select {
 		case taskData, ok := <-taskChan: // Fetch task from the channel
 			if !ok {
-				g.Log().Info(ctx, "Task channel is closed. Stopping consumer.")
+				g.Log(receiveTaskQueueLogger).Info(ctx, "Task channel is closed. Stopping consumer.")
 				return
 			}
 
@@ -48,7 +50,7 @@ func ProcessReceivedSmsQueue(ctx context.Context, taskChan chan *ReceivedSmsPayl
 			go processReceivedSmsTask(ctx, taskData)
 
 		case <-ctx.Done(): // Handle context cancellation
-			g.Log().Info(ctx, "Consumer stopped due to context cancellation.")
+			g.Log(receiveTaskQueueLogger).Info(ctx, "Consumer stopped due to context cancellation.")
 			return
 		}
 	}
@@ -60,7 +62,7 @@ func ProcessReceivedSmsQueue(ctx context.Context, taskChan chan *ReceivedSmsPayl
 // - ctx: The context for handling the operation.
 // - taskData: The payload containing the SMS task details.
 func processReceivedSmsTask(ctx context.Context, taskData *ReceivedSmsPayload) {
-	g.Log().Infof(ctx, "Processing task: %+v", taskData)
+	g.Log(receiveTaskQueueLogger).Infof(ctx, "Processing task: %+v", taskData)
 
 	// Handle the received SMS message
 	res, err := HandleReceivedSmsMessage(ctx, taskData.DeviceNumber, taskData.TargetPhoneNumber, taskData.SmsContent, taskData.StartTime)
@@ -73,17 +75,17 @@ func processReceivedSmsTask(ctx context.Context, taskData *ReceivedSmsPayload) {
 
 	// Log the result of task processing
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to process task for DeviceNumber=%s, TargetPhoneNumber=%s: %v", taskData.DeviceNumber, taskData.TargetPhoneNumber, err)
+		g.Log(receiveTaskQueueLogger).Errorf(ctx, "Failed to process task for DeviceNumber=%s, TargetPhoneNumber=%s: %v", taskData.DeviceNumber, taskData.TargetPhoneNumber, err)
 	} else {
-		g.Log().Infof(ctx, "Successfully processed task for DeviceNumber=%s, TargetPhoneNumber=%s", taskData.DeviceNumber, taskData.TargetPhoneNumber)
+		g.Log(receiveTaskQueueLogger).Infof(ctx, "Successfully processed task for DeviceNumber=%s, TargetPhoneNumber=%s", taskData.DeviceNumber, taskData.TargetPhoneNumber)
 	}
 
 	// Send the result to the result channel
 	select {
 	case ReportReceiveContentResPayloadChan <- payload:
-		g.Log().Info(ctx, "Result payload successfully sent to result channel.")
+		g.Log(receiveTaskQueueLogger).Info(ctx, "Result payload successfully sent to result channel.")
 	case <-ctx.Done():
-		g.Log().Warning(ctx, "Failed to send result payload. Context was cancelled.")
+		g.Log(receiveTaskQueueLogger).Warning(ctx, "Failed to send result payload. Context was cancelled.")
 	}
 }
 
@@ -116,7 +118,7 @@ func HandleReceivedSmsMessage(ctx context.Context, deviceNumber, targetPhoneNumb
 		strconv.Itoa(report.AssociatedAccountId), report.ProjectName,
 		strconv.Itoa(report.ProjectId), startTime.String(), "2",
 	)
-	g.Log().Infof(ctx, "Receive Data row hash -> %s", rowHash)
+	g.Log(receiveTaskQueueLogger).Infof(ctx, "Receive Data row hash -> %s", rowHash)
 
 	// Check for duplicate log entries
 	if exists, err := checkDuplicateLog(ctx, rowHash); err != nil {
@@ -140,12 +142,12 @@ func fetchTaskID(ctx context.Context, deviceNumber, targetPhoneNumber string) (i
 	redisKey := MakeNameCachePrefixSmsTraceTask(deviceNumber, targetPhoneNumber)
 	v, err := g.Redis().Get(ctx, redisKey)
 	if err != nil {
-		g.Log().Error(ctx, "Failed to fetch task ID from Redis:", err)
+		g.Log(receiveTaskQueueLogger).Error(ctx, "Failed to fetch task ID from Redis:", err)
 		return 0, errors.New("error fetching task ID from Redis")
 	}
 	taskId := gconv.Int(v)
 	if taskId != 0 {
-		g.Log().Info(ctx, "Task ID retrieved from Redis:", taskId)
+		g.Log(receiveTaskQueueLogger).Info(ctx, "Task ID retrieved from Redis:", taskId)
 		return taskId, nil
 	}
 
@@ -157,14 +159,14 @@ func fetchTaskID(ctx context.Context, deviceNumber, targetPhoneNumber string) (i
 		Where("target_number=?", targetPhoneNumber).
 		ScanAndCount(&traceData, &count, false)
 	if err != nil {
-		g.Log().Error(ctx, "Database query for SmsTraceTask failed:", err)
+		g.Log(receiveTaskQueueLogger).Error(ctx, "Database query for SmsTraceTask failed:", err)
 		return 0, errors.New("error querying SmsTraceTask from database")
 	}
 	if count == 0 {
 		return 0, errors.New("no trace task found, please verify the platform task")
 	}
 
-	g.Log().Info(ctx, "Task ID retrieved from Database:", traceData.TaskId)
+	g.Log(receiveTaskQueueLogger).Info(ctx, "Task ID retrieved from Database:", traceData.TaskId)
 	return traceData.TaskId, nil
 }
 
@@ -176,14 +178,14 @@ func fetchReport(ctx context.Context, taskId int) (*entity.SmsMissionReport, err
 		Where("id = ?", taskId).
 		ScanAndCount(&report, &count, false)
 	if err != nil {
-		g.Log().Error(ctx, "Failed to query SmsMissionReport:", err)
+		g.Log(receiveTaskQueueLogger).Error(ctx, "Failed to query SmsMissionReport:", err)
 		return nil, errors.New("error querying SmsMissionReport")
 	}
 	if count == 0 {
 		return nil, errors.New("no report found for the given task ID")
 	}
 
-	g.Log().Info(ctx, "Report retrieved for Task ID:", taskId)
+	g.Log(receiveTaskQueueLogger).Info(ctx, "Report retrieved for Task ID:", taskId)
 	return &report, nil
 }
 
@@ -193,7 +195,7 @@ func checkDuplicateLog(ctx context.Context, rowHash string) (bool, error) {
 		Where("row_hash = ?", rowHash).
 		Count()
 	if err != nil {
-		g.Log().Error(ctx, "Failed to check duplicate log entries:", err)
+		g.Log(receiveTaskQueueLogger).Error(ctx, "Failed to check duplicate log entries:", err)
 		return false, errors.New("error checking for duplicate log entries")
 	}
 	return count > 0, nil
@@ -219,10 +221,10 @@ func saveLogEntry(ctx context.Context, report *entity.SmsMissionReport, targetPh
 	// Insert log entry and return its ID
 	rowID, err := dao.SmsChartLog.Ctx(ctx).Data(data).InsertAndGetId()
 	if err != nil {
-		g.Log().Error(ctx, "Failed to insert SmsChartLog:", err)
+		g.Log(receiveTaskQueueLogger).Error(ctx, "Failed to insert SmsChartLog:", err)
 		return 0, errors.New("error inserting log entry into SmsChartLog")
 	}
 
-	g.Log().Info(ctx, "Log entry saved with ID:", rowID)
+	g.Log(receiveTaskQueueLogger).Info(ctx, "Log entry saved with ID:", rowID)
 	return rowID, nil
 }

@@ -21,6 +21,8 @@ type RegisterRes struct{}
 type GetListReq struct {
 	g.Meta `path:"/list" tags:"账号管理" method:"post" sm:"获取账号列表"`
 	allUser.GeneralReq
+	UserStatus int    `json:"user_status" default:"0"`
+	Keyword    string `json:"keyword"`
 }
 
 type GetListRes struct {
