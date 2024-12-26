@@ -17,6 +17,7 @@ const CachePrefixSmsTraceTask = "RedisPrefixSmsTraceTask"
 const CachePrefixUnregisteredDevice = "CachePreUnregisteredDevice"
 const CachePrefixUnassignedDevice = "CachePrefixUnassignedDevice"
 const CachePrefixNoExecutableTask = "CachePrefixNoExecutableTask"
+const fetchTaskQueueLogger = "fetchTaskQueue"
 
 type SmsDeviceNumberPayload struct {
 	DeviceNumber string `json:"device_number"` // 设备编号
@@ -34,24 +35,23 @@ func ConsumerFetchTaskQueue(ctx context.Context, taskChan <-chan *SmsDeviceNumbe
 		select {
 		case taskData, ok := <-taskChan: // 从管道中获取任务
 			if !ok {
-				g.Log().Info(ctx, "FetchTaskQueue channel is closed, stopping consumer")
+				g.Log(fetchTaskQueueLogger).Info(ctx, "FetchTaskQueue channel is closed, stopping consumer")
 				return
 			}
 			// 处理任务 taskID int, targetPhoneNumber, deviceNumber, content string, sendStatus int, startTime *gtime.Time, reason string
 			var res *career.FetchTaskRes
 			var err error
 			if res, err = FetchTaskQueue(ctx, taskData.DeviceNumber); err != nil {
-				g.Log().Errorf(ctx, "FetchTaskQueue Error: %v", err)
+				g.Log(fetchTaskQueueLogger).Errorf(ctx, "FetchTaskQueue Error: %v", err)
 			} else {
 
-				g.Log().Infof(ctx, "Task FetchTaskQueue successfully processed: %+v", taskData)
+				g.Log(fetchTaskQueueLogger).Infof(ctx, "Task FetchTaskQueue successfully processed: %+v", taskData)
 			}
 			payload := &SmsFetchTaskPayload{Res: res, Err: err}
 			SmsFetchTaskPayloadChan <- payload
 
 		case <-ctx.Done(): // 监听 context 的取消信号
-			g.Log().Info(ctx, "FetchTaskQueue stopped due to context cancellation")
-			Debug(ctx, "FetchTaskQueue", "fetch_task_chan_done.txt")
+			g.Log(fetchTaskQueueLogger).Info(ctx, "FetchTaskQueue stopped due to context cancellation")
 			return
 		}
 	}
@@ -64,7 +64,7 @@ func FetchTaskQueue(ctx context.Context, deviceNumber string) (*career.FetchTask
 	if err != nil {
 		// Cache unregistered device to prevent duplicate processing
 		if cacheErr := CacheDeviceStatus(ctx, CachePrefixUnregisteredDevice, deviceNumber); cacheErr != nil {
-			g.Log().Errorf(ctx, "Failed to cache unregistered device '%s': %v", deviceNumber, cacheErr)
+			g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to cache unregistered device '%s': %v", deviceNumber, cacheErr)
 			return nil, cacheErr
 		}
 		return nil, err
@@ -72,8 +72,7 @@ func FetchTaskQueue(ctx context.Context, deviceNumber string) (*career.FetchTask
 
 	// Check if the device exists in the unregistered cache and remove it if found
 	if err := CleanUpDeviceCache(ctx, CachePrefixUnregisteredDevice, device.DeviceNumber); err != nil {
-		g.Log().Errorf(ctx, "Failed to clean up unregistered device cache for device_number '%s': %v", device.DeviceNumber, err)
-		Debug(ctx, err.Error(), "clean_up_unregistered.txt")
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to clean up unregistered device cache for device_number '%s': %v", device.DeviceNumber, err)
 		return nil, err
 	}
 
@@ -81,7 +80,7 @@ func FetchTaskQueue(ctx context.Context, deviceNumber string) (*career.FetchTask
 	if device.GroupId == 0 {
 		// Cache unassigned device to prevent duplicate processing
 		if cacheErr := CacheDeviceStatus(ctx, CachePrefixUnassignedDevice, deviceNumber); cacheErr != nil {
-			g.Log().Errorf(ctx, "Failed to cache unregistered device '%s': %v", deviceNumber, cacheErr)
+			g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to cache unregistered device '%s': %v", deviceNumber, cacheErr)
 			return nil, cacheErr
 		}
 		return nil, fmt.Errorf("device %s not assigned to any group", deviceNumber)
@@ -89,16 +88,20 @@ func FetchTaskQueue(ctx context.Context, deviceNumber string) (*career.FetchTask
 
 	// Check if the device exists in the unassigned cache and remove it if found
 	if err := CleanUpDeviceCache(ctx, CachePrefixUnassignedDevice, device.DeviceNumber); err != nil {
-		g.Log().Errorf(ctx, "Failed to clean up unassigned device cache for device_number '%s': %v", device.DeviceNumber, err)
-		Debug(ctx, err.Error(), "clean_up_unassigned.txt")
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to clean up unassigned device cache for device_number '%s': %v", device.DeviceNumber, err)
 		return nil, err
 	}
 
 	// Handle tasks for the device
 	taskRes, err := handleTasks(ctx, device)
 	if err != nil {
-		g.Log().Errorf(ctx, "Failed to handle tasks for device '%s': %v", deviceNumber, err)
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to handle tasks for device '%s': %v", deviceNumber, err)
 		return nil, err
+	}
+	// Update the device status to "Occupied" (2)
+	if err := updateDeviceStatus(ctx, deviceNumber, 2); err != nil {
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to update device status to 'Occupied' for DeviceNumber='%s': %v", deviceNumber, err)
+		return nil, fmt.Errorf("failed to update device status for DeviceNumber='%s': %w", deviceNumber, err)
 	}
 
 	return taskRes, nil
@@ -117,7 +120,7 @@ func FetchTaskQueue(ctx context.Context, deviceNumber string) (*career.FetchTask
 func CacheDeviceStatus(ctx context.Context, prefix, deviceNumber string) error {
 	cacheKey := prefix + deviceNumber
 	if err := SetMapValueToCacheAndRedis(ctx, prefix, cacheKey, 1); err != nil {
-		g.Log().Errorf(ctx, "Failed to set cache for device '%s' with prefix '%s': %v", deviceNumber, prefix, err)
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to set cache for device '%s' with prefix '%s': %v", deviceNumber, prefix, err)
 		return fmt.Errorf("failed to cache device '%s' with prefix '%s': %w", deviceNumber, prefix, err)
 	}
 	g.Log().Infof(ctx, "Successfully cached device '%s' with prefix '%s'", deviceNumber, prefix)
@@ -236,13 +239,33 @@ func generateCacheKeys(fileName string, surplusQuantity int) (listKey, cacheKey,
 	return
 }
 
-func checkTaskExistence(ctx context.Context, cacheKey, hashKey string) (bool, error) {
-	exists, err := CheckMapExistsByCacheAndRedis(ctx, cacheKey, hashKey)
-	if err != nil {
-		g.Log().Errorf(ctx, "Failed to check task existence (cacheKey: %s, hashKey: %s): %v", cacheKey, hashKey, err)
-		return false, fmt.Errorf("failed to check task existence: %w", err)
+// updateDeviceStatus updates the sent_status of a device.
+//
+// Parameters:
+// - ctx: The context for handling the operation.
+// - deviceNumber: The unique identifier of the device.
+// - status: The new sent status (1 - Abnormal, 2 - Occupied, 3 - Idle).
+//
+// Returns:
+// - error: An error if the operation fails.
+func updateDeviceStatus(ctx context.Context, deviceNumber string, status int) error {
+	// Validate the sent_status
+	// Validate the sent_status
+	if status < 1 || status > 3 {
+		return fmt.Errorf("invalid sent_status '%d' for DeviceNumber='%s'", status, deviceNumber)
 	}
-	return exists, nil
+
+	// Update the sent_status in the database
+	if _, err := dao.DeviceList.Ctx(ctx).
+		Data(g.Map{"sent_status": status}).
+		Where("device_number = ?", deviceNumber).
+		Update(); err != nil {
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to update sent_status to '%d' for DeviceNumber='%s': %v", status, deviceNumber, err)
+		return fmt.Errorf("failed to update sent_status to '%d' for DeviceNumber='%s': %w", status, deviceNumber, err)
+	}
+
+	g.Log(fetchTaskQueueLogger).Infof(ctx, "Successfully updated sent_status to '%d' for DeviceNumber='%s'", status, deviceNumber)
+	return nil
 }
 
 func constructTaskResponse(subMessageData *sms.SubPostConversationRecordData, deviceNumber string) *career.FetchTaskRes {
@@ -265,7 +288,7 @@ func processTaskTransaction(ctx context.Context, job *entity.SmsMissionReport, t
 	defer func() {
 		if p := recover(); p != nil {
 			tx.Rollback()
-			g.Log().Errorf(ctx, "Transaction rolled back due to panic: %v", p)
+			g.Log(fetchTaskQueueLogger).Errorf(ctx, "Transaction rolled back due to panic: %v", p)
 		}
 	}()
 
@@ -313,7 +336,7 @@ func processTaskTransaction(ctx context.Context, job *entity.SmsMissionReport, t
 
 func clearCache(ctx context.Context, listKey string) error {
 	if err := RemoveCacheAndRedisKey(ctx, listKey); err != nil {
-		g.Log().Errorf(ctx, "Failed to clear cache for listKey: %s: %v", listKey, err)
+		g.Log(fetchTaskQueueLogger).Errorf(ctx, "Failed to clear cache for listKey: %s: %v", listKey, err)
 		return fmt.Errorf("failed to clear cache for listKey: %w", err)
 	}
 	//if err := RemoveCacheAndRedisKey(ctx, cacheKey); err != nil {

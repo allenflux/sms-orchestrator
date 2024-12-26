@@ -8,7 +8,6 @@ import (
 	"sms_backend/api/v1/subUser"
 	"sms_backend/internal/consts"
 	"sms_backend/internal/dao"
-	"sms_backend/internal/model"
 	"sms_backend/internal/model/do"
 	"sms_backend/internal/service"
 	"sms_backend/library/libUtils"
@@ -22,30 +21,20 @@ func New() *sSubUser { return &sSubUser{} }
 
 func init() { service.RegisterSubUser(New()) }
 
-func (s *sSubUser) GetList(ctx context.Context, req *subUser.SubGetListReq) (res *subUser.SubGetListRes, err error) {
-	err = g.Try(ctx, func(ctx context.Context) {
-		var info []*model.SubUser
-		orm := g.Model(info).Ctx(ctx).WithAll().Safe()
+func (s *sSubUser) GetList(ctx context.Context, req *subUser.SubGetListReq) (*subUser.SubGetListRes, error) {
+	// 直接获取请求中的子请求
+	userReq := req.GetListReq
 
-		if req.Keyword != "" {
-			orm = orm.WhereLike("name", "%"+req.Keyword+"%")
-		}
-		if req.PageNum != 0 && req.PageSize != 0 {
-			orm = orm.Page(req.PageNum, req.PageSize)
-		}
-		if req.OrderBy != "" {
-			orm = orm.Order(req.OrderBy)
-		}
+	// 调用用户服务获取列表
+	userRes, err := service.User().GetList(ctx, userReq)
+	if err != nil {
+		return nil, err // 提前返回错误，简化逻辑
+	}
 
-		res = &subUser.SubGetListRes{List: make([]*model.SubUser, 0)}
-		err = orm.ScanAndCount(&res.List, &res.Total, false)
-		if req.PageNum > 0 {
-			res.Current = req.PageNum
-		} else if req.PageSize == 0 {
-			res.Current = 1
-		}
-	})
-	return
+	// 构造响应并返回
+	return &subUser.SubGetListRes{
+		GetListRes: userRes,
+	}, nil
 }
 
 func (s *sSubUser) CreatedSubUser(ctx context.Context, req *subUser.SubRegisterReq) (res *subUser.SubRegisterRes, err error) {

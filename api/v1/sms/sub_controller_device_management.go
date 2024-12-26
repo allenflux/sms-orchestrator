@@ -93,3 +93,11 @@ type AllocateDevice2GroupReq struct {
 }
 type AllocateDevice2GroupRes struct {
 }
+
+type SubProjectListForFrontReq struct {
+	g.Meta    `path:"/sub/project/items" tags:"子平台项目管理" method:"get" dc:"查询项目列表 给前端作为筛选条件使用" `
+	SubUserID int `json:"sub_user_id" v:"required"  dc:"这个字段在子平台查询时使用 如果传递此字段 将返回子平台下的项目 总平台不用传递"`
+}
+type SubProjectListForFrontRes struct {
+	*ProjectListForFrontRes
+}

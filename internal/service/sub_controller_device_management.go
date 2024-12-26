@@ -29,6 +29,16 @@ type (
 		// - *sms.AllocateDevice2GroupRes: The response indicating success of the allocation.
 		// - error: An error if the allocation fails at any point.
 		AllocateDevice2Group(ctx context.Context, req *sms.AllocateDevice2GroupReq) (*sms.AllocateDevice2GroupRes, error)
+		// GetProjectList retrieves the list of projects for the front-end, scoped by the SubUserID.
+		//
+		// Parameters:
+		// - ctx: The context for handling the request.
+		// - req: The request containing the SubUserID.
+		//
+		// Returns:
+		// - *sms.SubProjectListForFrontRes: The response containing the list of projects.
+		// - error: An error if the operation fails.
+		GetProjectList(ctx context.Context, req *sms.SubProjectListForFrontReq) (*sms.SubProjectListForFrontRes, error)
 	}
 )
 

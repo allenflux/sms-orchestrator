@@ -31,6 +31,18 @@ func (s *sUser) GetList(ctx context.Context, req *user.GetListReq) (res *user.Ge
 		if systemId != 1 {
 			orm = orm.Where(dao.User.Columns().SystemId, systemId)
 		}
+		if req.Keyword != "" {
+			orm = orm.Where("name LIKE ?", "%"+req.Keyword+"%")
+		}
+		if req.UserStatus != 0 {
+			checker := consts.EnumsUserStatus(req.UserStatus)
+			if checker.IsValid() {
+				orm = orm.Where("status = ?", req.UserStatus)
+			} else {
+				liberr.ErrIsNil(ctx, errors.New("未满足枚举条件"))
+			}
+		}
+
 		if req.PageNum != 0 && req.PageSize != 0 {
 			orm = orm.Page(req.PageNum, req.PageSize)
 		}

@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
+	commonApi "sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
@@ -25,70 +26,116 @@ func init() {
 type sMainControllerDeviceManagement struct{}
 
 const NoPhoneNumber = "NoPhoneNumber"
+const PrefixDeviceID = "DeviceID"
 
-func ConverNoPhoneNumber(str string) string {
+// ConvertNoPhoneNumber converts "NoPhoneNumber" to an empty string; otherwise, returns the input string.
+func ConvertNoPhoneNumber(str string) string {
 	if str == NoPhoneNumber {
 		return ""
 	}
 	return str
 }
 
-func (s *sMainControllerDeviceManagement) GetDeviceList(ctx context.Context, req *sms.DeviceListReq) (res *sms.DeviceListRes, err error) {
-	raw := make([]*entity.DeviceList, 0)
-	dbTemper := dao.DeviceList.Ctx(ctx).Page(req.PageNum, req.PageSize).Order("id desc")
+// GetDeviceList retrieves a paginated list of devices based on the given filters.
+//
+// Parameters:
+// - ctx: The context for handling the request.
+// - req: The request containing the filters for querying the device list.
+//
+// Returns:
+// - *sms.DeviceListRes: The response containing the paginated device list and metadata.
+// - error: An error if the operation fails.
+func (s *sMainControllerDeviceManagement) GetDeviceList(ctx context.Context, req *sms.DeviceListReq) (*sms.DeviceListRes, error) {
+	// Initialize database query with pagination and ordering
+	dbQuery := dao.DeviceList.Ctx(ctx).
+		Page(req.PageNum, req.PageSize).
+		Order("id DESC")
 
-	if req.TaskName != "" {
-		dbTemper = dbTemper.Where("task_name like ?", "%"+req.TaskName+"%")
-	}
+	// Apply dynamic filters to the query
+	dbQuery = applyDeviceListFilters(dbQuery, req)
 
-	if req.SentStatus != 0 {
-		dbTemper = dbTemper.Where("sent_status = ?", req.SentStatus)
-	}
-
-	if len(req.Number) != 0 {
-		dbTemper = dbTemper.Where("number like ?", "%"+req.Number+"%")
-	}
-
-	if len(req.DeviceNumber) != 0 {
-		dbTemper = dbTemper.Where("device_number like ?", "%"+req.DeviceNumber+"%")
-	}
-
-	if len(req.SentDateRange) > 0 {
-		dbTemper = dbTemper.Where("start_at >= ? AND start_at <= ?", req.SentDateRange[0], req.SentDateRange[1])
-	}
-
-	if len(req.CreateDateRange) > 0 {
-		dbTemper = dbTemper.Where("create_at >= ? AND create_at <= ?", req.CreateDateRange[0], req.CreateDateRange[1])
-	}
-
+	// Execute the query and count the total records
+	var rawDevices []*entity.DeviceList
 	var totalCount int
-	if err := dbTemper.ScanAndCount(&raw, &totalCount, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("ScanAndCount错误 Table DeviceList")
+	if err := dbQuery.ScanAndCount(&rawDevices, &totalCount, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query DeviceList: %v", err)
+		return nil, fmt.Errorf("failed to query DeviceList: %w", err)
 	}
-	res = &sms.DeviceListRes{}
-	res.Total = totalCount
-	data := make([]sms.DeviceListResData, len(raw))
 
+	// Transform raw database results into response format
+	res := &sms.DeviceListRes{
+		ListRes: commonApi.ListRes{
+			Total: totalCount,
+		},
+		Data: transformDeviceListToResponse(rawDevices),
+	}
+
+	g.Log().Infof(ctx, "Successfully retrieved %d devices for request: %+v", totalCount, req)
+	return res, nil
+}
+
+// applyDeviceListFilters dynamically applies filters to the database query based on the request parameters.
+//
+// Parameters:
+// - dbQuery: The initial database query.
+// - req: The request containing filter parameters.
+//
+// Returns:
+// - *gdb.Model: The updated database query with applied filters.
+func applyDeviceListFilters(dbQuery *gdb.Model, req *sms.DeviceListReq) *gdb.Model {
+	if req.DeviceID != "" {
+		dbQuery = dbQuery.Where("id ?", req.DeviceID)
+	}
+	if req.TaskName != "" {
+		dbQuery = dbQuery.Where("task_name LIKE ?", "%"+req.TaskName+"%")
+	}
+	if req.SentStatus != 0 {
+		dbQuery = dbQuery.Where("sent_status = ?", req.SentStatus)
+	}
+	if req.Number != "" {
+		dbQuery = dbQuery.Where("number LIKE ?", "%"+req.Number+"%")
+	}
+	if req.DeviceNumber != "" {
+		dbQuery = dbQuery.Where("device_number LIKE ?", "%"+req.DeviceNumber+"%")
+	}
+	if len(req.SentDateRange) == 2 {
+		dbQuery = dbQuery.Where("start_at BETWEEN ? AND ?", req.SentDateRange[0], req.SentDateRange[1])
+	}
+	if len(req.CreateDateRange) == 2 {
+		dbQuery = dbQuery.Where("create_at BETWEEN ? AND ?", req.CreateDateRange[0], req.CreateDateRange[1])
+	}
+	return dbQuery
+}
+
+// transformDeviceListToResponse converts raw database entities into response data for the API.
+//
+// Parameters:
+// - rawDevices: The raw database entities retrieved from the query.
+//
+// Returns:
+// - []sms.DeviceListResData: The transformed response data.
+func transformDeviceListToResponse(rawDevices []*entity.DeviceList) []sms.DeviceListResData {
+	responseData := make([]sms.DeviceListResData, len(rawDevices))
 	currentTime := gtime.Now()
-	for i := range raw {
-		data[i] = sms.DeviceListResData{
-			ID:            raw[i].Id,
-			DeviceNumber:  raw[i].DeviceNumber,
-			DeviceID:      "",
-			DeviceStatus:  raw[i].DeviceStatus,
-			SentStatus:    raw[i].SentStatus,
-			ProjectID:     raw[i].AssignedItemsId,
-			Number:        ConverNoPhoneNumber(raw[i].Number),
-			ActiveDays:    int(currentTime.Sub(raw[i].ActiveTime).Hours() / 24),
-			OwnerAccount:  raw[i].OwnerAccount,
-			AssignedItems: raw[i].AssignedItems,
-			QuantitySent:  strconv.Itoa(raw[i].QuantitySent),
-			ActiveTime:    raw[i].ActiveTime.String(),
+
+	for i, device := range rawDevices {
+		responseData[i] = sms.DeviceListResData{
+			ID:            device.Id,
+			DeviceNumber:  device.DeviceNumber,
+			DeviceID:      PrefixDeviceID + strconv.Itoa(device.Id), // Default value, can be populated later if needed
+			DeviceStatus:  device.DeviceStatus,
+			SentStatus:    device.SentStatus,
+			ProjectID:     device.AssignedItemsId,
+			Number:        ConvertNoPhoneNumber(device.Number),
+			ActiveDays:    int(currentTime.Sub(device.ActiveTime).Hours() / 24),
+			OwnerAccount:  device.OwnerAccount,
+			AssignedItems: device.AssignedItems,
+			QuantitySent:  strconv.Itoa(device.QuantitySent),
+			ActiveTime:    device.ActiveTime.String(),
 		}
 	}
-	res.Data = data
-	return
+
+	return responseData
 }
 
 // AllocateDevice2Project allocates a list of devices to a project.

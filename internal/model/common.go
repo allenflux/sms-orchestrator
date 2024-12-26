@@ -7,12 +7,14 @@
 
 package model
 
+import "github.com/gogf/gf/v2/os/gtime"
+
 // PageReq 公共请求参数
 type PageReq struct {
-	DateRange []string `json:"date_range" p:"dateRange" description:"日期范围"`            //日期范围
-	PageNum   int      `json:"page_num" p:"pageNum" description:"当前页码" default:"1"`    //当前页码
-	PageSize  int      `json:"page_size" p:"pageSize" description:"每页数量" default:"10"` //每页数
-	OrderBy   string   `json:"order_by"`                                               //排序方式
+	DateRange []*gtime.Time `json:"date_range" p:"dateRange" description:"日期范围"`            //日期范围
+	PageNum   int           `json:"page_num" p:"pageNum" description:"当前页码" default:"1"`    //当前页码
+	PageSize  int           `json:"page_size" p:"pageSize" description:"每页数量" default:"10"` //每页数
+	OrderBy   string        `json:"order_by"`                                               //排序方式
 }
 
 // ListRes 列表公共返回
