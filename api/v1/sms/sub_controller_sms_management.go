@@ -131,6 +131,7 @@ type SubGetConversationRecordListResData struct {
 	SentOrReceive     int         `json:"sent_or_receive" dc:"1表示此条短信是发送 2表示此条短信是接收"`
 	RecordTime        *gtime.Time `json:"record_time" dc:"接收到信息的时间"`
 	ChatLogID         int         `json:"chat_log_id"  dc:"chart id"`
+	DeviceNumber      string      `json:"device_number" dc:"Device Number"`
 }
 type SubGetConversationRecordListRes struct {
 	commonApi.ListRes
@@ -140,8 +141,8 @@ type SubGetConversationRecordListRes struct {
 type SubPostConversationRecordReq struct {
 	g.Meta `path:"/sub/conversation/record" tags:"子平台消息对话" method:"post" dc:"在对话中发送消息" `
 	//SubUserID  int    `json:"sub_user_id" v:"required"`
-	ChartLogID int    `json:"chart_log_id" v:"required" dc:"需要回复的chat id"`
-	Content    string `json:"content" v:"required"`
+	ChatLogID int64  `json:"chat_log_id" v:"required" dc:"需要回复的chat id"`
+	Content   string `json:"content" v:"required"`
 }
 
 type SubPostConversationRecordRes struct {

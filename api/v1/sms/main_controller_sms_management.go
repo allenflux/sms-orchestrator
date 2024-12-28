@@ -90,6 +90,17 @@ type ConversationRecordRes struct {
 	*SubGetConversationRecordRes
 }
 
+type PostConversationRecordReq struct {
+	g.Meta `path:"/conversation/record" tags:"消息对话" method:"post" dc:"在对话中发送消息" `
+	//ChatLogID int    `json:"chat_log_id" v:"required"  dc:"需要回复的chat id"`
+	//Content   string `json:"content" v:"required"`
+	*SubPostConversationRecordReq
+}
+
+type PostConversationRecordRes struct {
+	*SubPostConversationRecordRes
+}
+
 type TaskDevicesReq struct {
 	model.PageReq
 	g.Meta `path:"/task/device/list" tags:"群发短信" method:"get" dc:"根据任务id获取执行设备列表" `

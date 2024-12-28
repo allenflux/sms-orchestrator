@@ -30,6 +30,15 @@ type LoginRes struct {
 	Permission []*model.UserPermissionTree `json:"permission"`
 }
 
+type SubLoginReq struct {
+	g.Meta `path:"/login" tags:"子用户登录" method:"post" sm:"登录"`
+	*LoginReq
+}
+
+type SubLoginRes struct {
+	*LoginRes
+}
+
 type LogoutReq struct {
 	g.Meta `path:"/logout" tags:"全用户登录" method:"post" sm:"退出登录"`
 }

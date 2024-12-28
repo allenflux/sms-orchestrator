@@ -221,15 +221,42 @@ func (s *sSubControllerSmsManagement) TaskFileDownload(ctx context.Context, req 
 	return
 }
 
-// Delete Task
+// TaskReportDelete handles the recall of a task by updating its status in the SmsMissionReport table.
+func (s *sSubControllerSmsManagement) TaskReportDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (*sms.SubTaskDeleteRes, error) {
+	var report entity.SmsMissionReport
+	var count int
 
-func (s *sSubControllerSmsManagement) TaskReportDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (res *sms.SubTaskDeleteRes, err error) {
-	// todo 撤销任务时做任务状态检查
-	if _, err = dao.SmsMissionReport.Ctx(ctx).Where("id = ?", req.TaskID).Delete(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("删除记录失败 SmsMissionReport")
+	// Fetch the task report based on TaskID
+	if err := dao.SmsMissionReport.Ctx(ctx).
+		Where("id = ?", req.TaskID).
+		ScanAndCount(&report, &count, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to fetch SmsMissionReport for TaskID=%d: %v", req.TaskID, err)
+		return nil, fmt.Errorf("failed to fetch task record: %w", err)
 	}
-	return
+
+	// Check if the task exists
+	if count == 0 {
+		g.Log().Warningf(ctx, "Invalid TaskID=%d: No record found", req.TaskID)
+		return nil, errors.New("invalid task ID: no record found")
+	}
+
+	// Check if the task is already completed
+	if report.TaskStatus == 3 {
+		g.Log().Warningf(ctx, "Invalid TaskID=%d: Task is already completed", req.TaskID)
+		return nil, errors.New("invalid task ID: task already completed")
+	}
+
+	// Update the task status to "recalled" (4)
+	if _, err := dao.SmsMissionReport.Ctx(ctx).
+		Data(g.Map{"task_status": 4}).
+		Where("id = ?", req.TaskID).
+		Update(); err != nil {
+		g.Log().Errorf(ctx, "Failed to update task status to 'recalled' for TaskID=%d: %v", req.TaskID, err)
+		return nil, fmt.Errorf("failed to recall task: %w", err)
+	}
+
+	g.Log().Infof(ctx, "Successfully recalled task with TaskID=%d", req.TaskID)
+	return &sms.SubTaskDeleteRes{}, nil
 }
 
 // GetSubGetConversationRecord retrieves a detailed conversation record list for a specific ChatLogID.
@@ -280,6 +307,7 @@ func (s *sSubControllerSmsManagement) GetSubGetConversationRecord(ctx context.Co
 			Content:           log.SmsContent,
 			TargetPhoneNumber: log.TargetPhoneNumber,
 			SentOrReceive:     log.SentOrReceive,
+			DeviceNumber:      log.DeviceNumber,
 		}
 	}
 
@@ -305,12 +333,14 @@ func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.C
 	var (
 		chatLogsId []*entity.SmsChartLog
 		chatLogs   []*entity.SmsChartLog
+		totalCount int
 	)
 
 	// Step 1: Query unique conversation records based on target phone number and device number
 	query := dao.SmsChartLog.Ctx(ctx).
 		Page(req.PageNum, req.PageSize).
-		Where("project_id = ?", req.ProjectID)
+		Where("project_id = ?", req.ProjectID).
+		OrderDesc("id")
 
 	if req.SubUserID != 0 {
 		query = query.Where("associated_account_id = ?", req.SubUserID)
@@ -321,7 +351,7 @@ func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.C
 		FieldMax("id", "id").
 		Group("target_phone_number").
 		Group("device_number").
-		Scan(&chatLogsId); err != nil {
+		ScanAndCount(&chatLogsId, &totalCount, false); err != nil {
 		g.Log().Errorf(ctx, "Failed to query SmsChartLog IDs for ProjectID=%d: %v", req.ProjectID, err)
 		return nil, fmt.Errorf("failed to query unique conversation record IDs: %w", err)
 	}
@@ -354,6 +384,10 @@ func (s *sSubControllerSmsManagement) SubGetConversationRecordList(ctx context.C
 
 	// Step 5: Prepare the response
 	res := &sms.SubGetConversationRecordListRes{
+		ListRes: commonApi.ListRes{
+			CurrentPage: req.PageNum,
+			Total:       totalCount,
+		},
 		Data: data,
 	}
 
@@ -420,44 +454,72 @@ func (s *sSubControllerSmsManagement) GetTaskRecordList(ctx context.Context, req
 	return
 }
 
-// 接收Sub User输入的内容放入 Cache，作为优先任务暴露给Device执行
+// PostConversationRecord receives input from a Sub User and stores it in the cache as a priority task for a Device to execute.
+func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context, req *sms.SubPostConversationRecordReq) (*sms.SubPostConversationRecordRes, error) {
+	// Step 1: Fetch SmsChartLog record by ChartLogID
+	chartLog, err := fetchSmsChartLogByID(ctx, req.ChatLogID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch SmsChartLog: %w", err)
+	}
 
-func (s *sSubControllerSmsManagement) PostConversationRecord(ctx context.Context, req *sms.SubPostConversationRecordReq) (res *sms.SubPostConversationRecordRes, err error) {
-	// search DB 获取chart log信息
+	// Step 2: Generate task message
+	message := generateTaskMessage(chartLog, req.Content)
+
+	// Step 3: Push task to Redis queue
+	unSentTaskCount, err := pushTaskToRedis(ctx, chartLog.DeviceNumber, message)
+	if err != nil {
+		return nil, fmt.Errorf("failed to push task to Redis queue: %w", err)
+	}
+
+	// Step 4: Construct response
+	return &sms.SubPostConversationRecordRes{
+		TaskItemName:  chartLog.DeviceNumber,
+		UnSendTaskNum: unSentTaskCount,
+	}, nil
+}
+
+// fetchSmsChartLogByID retrieves SmsChartLog record by its ID.
+func fetchSmsChartLogByID(ctx context.Context, chartLogID int64) (*entity.SmsChartLog, error) {
 	var chartLog entity.SmsChartLog
-	c := 0
-	if err = dao.SmsChartLog.Ctx(ctx).Where("id = ?", req.ChartLogID).ScanAndCount(&chartLog, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("数据库操作错误 查询 Task ChartLogID 错误")
-	}
-	if c == 0 {
-		return nil, errors.New("未查询到 Task ChartLog")
+	count := 0
+	err := dao.SmsChartLog.Ctx(ctx).
+		Where("id = ?", chartLogID).
+		ScanAndCount(&chartLog, &count, false)
+
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to query SmsChartLog with ID '%d': %v", chartLogID, err)
+		return nil, errors.New("database query error while fetching SmsChartLog")
 	}
 
-	// 验证Sub User id
-	//if req.SubUserID != chartLog.AssociatedAccountId {
-	//	return nil, errors.New("验证sub user id失败，发送消息不属于原任务 report 的信息")
-	//}
-	// 生成任务信息
-	// {TargetPhoneNumber: ... DeviceNumber: ... Content: ... TaskID ...}
-	message := sms.SubPostConversationRecordData{
+	if count == 0 {
+		return nil, errors.New("no SmsChartLog found for the given ID")
+	}
+
+	return &chartLog, nil
+}
+
+// generateTaskMessage creates a task message based on the provided chartLog and content.
+func generateTaskMessage(chartLog *entity.SmsChartLog, content string) sms.SubPostConversationRecordData {
+	return sms.SubPostConversationRecordData{
 		TaskID:            int64(chartLog.TaskId),
-		Content:           req.Content,
+		Content:           content,
 		DeviceNumber:      chartLog.DeviceNumber,
 		TargetPhoneNumber: chartLog.TargetPhoneNumber,
 		Interval:          "0",
 		StartAt:           gtime.Now(),
 	}
-	// 生成任务队列
-	var rIndex int64
-	if rIndex, err = g.Redis().LPush(ctx, chartLog.DeviceNumber, message); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("插入redis list 错误")
+}
+
+// pushTaskToRedis pushes the given task message to the Redis queue associated with the device.
+func pushTaskToRedis(ctx context.Context, deviceNumber string, message sms.SubPostConversationRecordData) (int64, error) {
+	taskIndex, err := g.Redis().LPush(ctx, deviceNumber, message)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to push task to Redis for device '%s': %v", deviceNumber, err)
+		return 0, errors.New("failed to insert task into Redis list")
 	}
-	res = &sms.SubPostConversationRecordRes{}
-	res.TaskItemName = chartLog.DeviceNumber
-	res.UnSendTaskNum = rIndex
-	return
+
+	g.Log().Infof(ctx, "Task successfully pushed to Redis for device '%s', Unsent Task Count: %d", deviceNumber, taskIndex)
+	return taskIndex, nil
 }
 
 // GetPendingTasks retrieves the pending tasks for a specific SMS mission.

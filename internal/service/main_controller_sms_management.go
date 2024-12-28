@@ -13,7 +13,8 @@ import (
 type (
 	IMainControllerSmsManagement interface {
 		GetTaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error)
-		GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
+		// GetTaskRecordList retrieves a paginated list of task records based on the provided filters.
+		GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (*sms.TaskRecordRes, error)
 		// GetSubGetConversationRecord retrieves a specific conversation record by delegating the request to the sub-controller service.
 		//
 		// Parameters:
@@ -34,6 +35,8 @@ type (
 		// - *sms.ConversationListRes: The response containing the conversation records.
 		// - error: An error if the operation fails.
 		GetConversationRecordList(ctx context.Context, req *sms.ConversationListReq) (*sms.ConversationListRes, error)
+		// PostConversationRecord handles posting conversation records and forwards the request to the sub-controller.
+		PostConversationRecord(ctx context.Context, req *sms.PostConversationRecordReq) (*sms.PostConversationRecordRes, error)
 		// GetTaskDevices retrieves the list of devices assigned to a specific task (group ID) with pagination support.
 		//
 		// Parameters:

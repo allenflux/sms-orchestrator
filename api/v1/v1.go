@@ -20,6 +20,7 @@ import (
 
 type IV1AllUser interface {
 	Login(ctx context.Context, req *allUser.LoginReq) (res *allUser.LoginRes, err error)
+	SubLogin(ctx context.Context, req *allUser.SubLoginReq) (res *allUser.SubLoginRes, err error)
 	Logout(ctx context.Context, req *allUser.LogoutReq) (res *allUser.LogoutRes, err error)
 	ChangePassword(ctx context.Context, req *allUser.ChangePasswordReq) (res *allUser.ChangePasswordRes, err error)
 }
@@ -61,6 +62,7 @@ type IV1Sms interface {
 	TaskRecord(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error)
 	ConversationList(ctx context.Context, req *sms.ConversationListReq) (res *sms.ConversationListRes, err error)
 	ConversationRecord(ctx context.Context, req *sms.ConversationRecordReq) (res *sms.ConversationRecordRes, err error)
+	PostConversationRecord(ctx context.Context, req *sms.PostConversationRecordReq) (res *sms.PostConversationRecordRes, err error)
 	TaskDevices(ctx context.Context, req *sms.TaskDevicesReq) (res *sms.TaskDevicesRes, err error)
 	SubTaskDevices(ctx context.Context, req *sms.SubTaskDevicesReq) (res *sms.SubTaskDevicesRes, err error)
 	PendingTask(ctx context.Context, req *sms.PendingTaskReq) (res *sms.PendingTaskRes, err error)

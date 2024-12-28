@@ -13,6 +13,8 @@ import (
 
 type (
 	ILogin interface {
+		// HandleSubUserLogin processes login requests for sub-users by delegating to the main login handler.
+		HandleSubUserLogin(ctx context.Context, req *allUser.SubLoginReq) (res *allUser.SubLoginRes, err error)
 		Login(ctx context.Context, req *allUser.LoginReq) (res *allUser.LoginRes, err error)
 		ChangePassword(ctx context.Context, req *allUser.ChangePasswordReq) (res *allUser.ChangePasswordRes, err error)
 		Logout(ctx context.Context, req *allUser.LogoutReq) (res *allUser.LogoutRes, err error)

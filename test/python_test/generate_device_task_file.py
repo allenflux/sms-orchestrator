@@ -13,10 +13,10 @@ def generate_device_task_file(num):
     content_list = []
     phone_list = []
     for i in range(num):
-        content =str(i) + "---" + fake.text(max_nb_chars=10)
+        content =str(i) + "---" + fake.text(max_nb_chars=10) + "收到没"
         content_list.append(content)
         # phone = fake.phone_number()
-        phone = "15121066738"
+        phone = "15910821821"
         phone_list.append(phone)
         print(content)
         print(phone)

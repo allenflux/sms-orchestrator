@@ -12,7 +12,16 @@ import (
 
 type (
 	IMainControllerDeviceManagement interface {
-		GetDeviceList(ctx context.Context, req *sms.DeviceListReq) (res *sms.DeviceListRes, err error)
+		// GetDeviceList retrieves a paginated list of devices based on the given filters.
+		//
+		// Parameters:
+		// - ctx: The context for handling the request.
+		// - req: The request containing the filters for querying the device list.
+		//
+		// Returns:
+		// - *sms.DeviceListRes: The response containing the paginated device list and metadata.
+		// - error: An error if the operation fails.
+		GetDeviceList(ctx context.Context, req *sms.DeviceListReq) (*sms.DeviceListRes, error)
 		// AllocateDevice2Project allocates a list of devices to a project.
 		// It validates the device IDs, checks if the project exists, and updates the database accordingly.
 		//

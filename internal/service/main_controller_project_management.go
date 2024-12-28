@@ -23,8 +23,11 @@ type (
 		// - error: An error if the operation fails.
 		GetProjectList(ctx context.Context, req *sms.ProjectListForFrontReq) (*sms.ProjectListForFrontRes, error)
 		ProjectList(ctx context.Context, req *sms.ProjectListReq) (res *sms.ProjectListRes, err error)
+		// CreateProject handles the creation of a new project.
 		CreateProject(ctx context.Context, req *sms.ProjectCreateReq) (res *sms.ProjectCreateRes, err error)
+		// DeleteProject handles the deletion of a project after checking constraints.
 		DeleteProject(ctx context.Context, req *sms.ProjectDeleteReq) (res *sms.ProjectDeleteRes, err error)
+		// UpdateProject handles updating the details of a project.
 		UpdateProject(ctx context.Context, req *sms.ProjectUpdateReq) (res *sms.ProjectUpdateRes, err error)
 		// AllocateAccount2Project assigns an account to a specific project and updates related device and project records.
 		//

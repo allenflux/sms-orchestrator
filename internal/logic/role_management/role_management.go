@@ -91,6 +91,11 @@ func (s *sRole) UpdatedRole(ctx context.Context, req *role.UpdatedReq) (res *rol
 
 func (s *sRole) DeleteRole(ctx context.Context, req *role.DeletedReq) (res *role.DeletedRes, err error) {
 	err = g.Try(ctx, func(ctx context.Context) {
+
+		if req.ID == 1 || req.ID == 2 {
+			liberr.ErrIsNil(ctx, errors.New("无效的删除操作"))
+		}
+
 		_, err := dao.RolePermission.Ctx(ctx).Where(dao.RolePermission.Columns().RoleId, req.ID).Delete()
 		liberr.ErrIsNil(ctx, err)
 
