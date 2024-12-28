@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/util/grand"
+	"sms_backend/api/v1/sms"
 	"sms_backend/api/v1/subUser"
 	"sms_backend/internal/consts"
 	"sms_backend/internal/dao"
@@ -65,9 +66,14 @@ func (s *sSubUser) CreatedSubUser(ctx context.Context, req *subUser.SubRegisterR
 
 		if len(req.Project) > 0 {
 			for _, v := range req.Project {
-				_, err = dao.ProjectList.Ctx(ctx).Data(do.ProjectList{
-					AssociatedAccountId: int(subUserId),
-				}).WherePri(v).Update()
+				//_, err = dao.ProjectList.Ctx(ctx).Data(do.ProjectList{
+				//	AssociatedAccountId: int(subUserId),
+				//}).WherePri(v).Update()
+				mainReq := &sms.AllocateAccount2ProjectReq{
+					AccountId: int(subUserId),
+					ProjectId: v,
+				}
+				_, err = service.MainControllerProjectManagement().AllocateAccount2Project(ctx, mainReq)
 				liberr.ErrIsNil(ctx, err)
 			}
 		}
@@ -97,9 +103,14 @@ func (s *sSubUser) UpdateSubUser(ctx context.Context, req *subUser.SubUpdateReq)
 
 		if len(req.Project) > 0 {
 			for _, v := range req.Project {
-				_, err = dao.ProjectList.Ctx(ctx).Data(do.ProjectList{
-					AssociatedAccountId: req.ID,
-				}).WherePri(v).Update()
+				//_, err = dao.ProjectList.Ctx(ctx).Data(do.ProjectList{
+				//	AssociatedAccountId: req.ID,
+				//}).WherePri(v).Update()
+				mainReq := &sms.AllocateAccount2ProjectReq{
+					AccountId: req.ID,
+					ProjectId: v,
+				}
+				_, err = service.MainControllerProjectManagement().AllocateAccount2Project(ctx, mainReq)
 				liberr.ErrIsNil(ctx, err)
 			}
 		}

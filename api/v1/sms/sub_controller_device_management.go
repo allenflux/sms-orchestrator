@@ -59,8 +59,8 @@ type SubGroupListRes struct {
 
 type SubCreateGroupReq struct {
 	g.Meta    `path:"/sub/group" tags:"子平台设备列表" method:"post" dc:"创建当前用户下的分组列表" `
-	SubUserID int    `json:"sub_user_id"  v:"required" dc:"子平台用户账号ID"`
-	ProjectID int    `json:"project_id"  v:"required" dc:"平台当前子用户下的projectID"`
+	SubUserID int64  `json:"sub_user_id"  v:"required" dc:"子平台用户账号ID"`
+	ProjectID int64  `json:"project_id"  v:"required" dc:"平台当前子用户下的projectID"`
 	GroupName string `json:"group_name" v:"required"`
 }
 type SubCreateGroupRes struct {

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gogf/gf/v2/frame/g"
+	"github.com/gogf/gf/v2/net/ghttp"
 	commonApi "sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
@@ -32,6 +33,13 @@ type sMainControllerProjectManagement struct{}
 // - *sms.ProjectListForFrontRes: The response containing the project list.
 // - error: An error if the operation fails.
 func (s *sMainControllerProjectManagement) GetProjectList(ctx context.Context, req *sms.ProjectListForFrontReq) (*sms.ProjectListForFrontRes, error) {
+	r := ghttp.RequestFromCtx(ctx)
+	currentRoute := r.Router.Uri
+	g.Log().Info(ctx, "Current Route:", currentRoute)
+	if currentRoute == "/api/v1/sms/project/items" {
+		req.SubUserID = 0
+	}
+
 	// Step 1: Initialize the database query
 	query := dao.ProjectList.Ctx(ctx)
 
