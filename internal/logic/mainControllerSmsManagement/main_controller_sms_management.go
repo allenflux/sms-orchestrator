@@ -27,7 +27,7 @@ type sMainControllerSmsManagement struct{}
 // GetTaskList retrieves a paginated list of SMS tasks based on filters.
 func (s *sMainControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.TaskListReq) (*sms.TaskListRes, error) {
 	// Initialize the query builder for SmsMissionReport with pagination.
-	query := dao.SmsMissionReport.Ctx(ctx).Page(req.PageNum, req.PageSize)
+	query := dao.SmsMissionReport.Ctx(ctx).Page(req.PageNum, req.PageSize).OrderDesc("id")
 
 	// Apply filters to the query if provided.
 	if req.ProjectID != 0 {

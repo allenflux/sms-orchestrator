@@ -163,6 +163,10 @@ func (s *sSubUser) ChangeStatus(ctx context.Context, req *subUser.SubChangeStatu
 
 func (s *sSubUser) DeleteSubUser(ctx context.Context, req *subUser.SubDeleteReq) (res *subUser.SubDeleteRes, err error) {
 	err = g.Try(ctx, func(ctx context.Context) {
+		if req.ID != 0 {
+			err = errors.New("暂不支持删除子账号")
+			liberr.ErrIsNil(ctx, err)
+		}
 		_, err = dao.User.Ctx(ctx).WherePri(req.ID).Delete()
 		liberr.ErrIsNil(ctx, err)
 

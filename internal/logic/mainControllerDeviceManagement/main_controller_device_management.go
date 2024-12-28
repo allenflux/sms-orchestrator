@@ -132,6 +132,8 @@ func transformDeviceListToResponse(rawDevices []*entity.DeviceList) []sms.Device
 			AssignedItems: device.AssignedItems,
 			QuantitySent:  strconv.Itoa(device.QuantitySent),
 			ActiveTime:    device.ActiveTime.String(),
+			GroupID:       device.GroupId,
+			GroupName:     device.GroupName,
 		}
 	}
 

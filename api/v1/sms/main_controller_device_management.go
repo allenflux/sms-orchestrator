@@ -91,6 +91,8 @@ type DeviceListResData struct {
 	QuantitySent  string `json:"quantity_sent"`
 	DeviceStatus  int    `json:"device_status" dc:"设备状态，1-异常 2-正常"`
 	ActiveTime    string `json:"active_time"`
+	GroupID       int    `json:"group_id" dc:"如果为0则表示此设备未被分配到组"`
+	GroupName     string `json:"group_name"`
 }
 type DeviceListRes struct {
 	Data []DeviceListResData `json:"data"`
