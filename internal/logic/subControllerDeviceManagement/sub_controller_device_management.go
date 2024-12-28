@@ -7,6 +7,7 @@ import (
 	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
 	"github.com/gogf/gf/v2/os/gtime"
+	commonApi "sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
 	"sms_backend/internal/model/entity"
@@ -25,94 +26,157 @@ func init() {
 
 type sSubControllerDeviceManagement struct{}
 
-func (s *sSubControllerDeviceManagement) GetDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (res *sms.SubDeviceListRes, err error) {
-	raw := make([]*entity.DeviceList, 0)
-	dbTemper := dao.DeviceList.Ctx(ctx).Page(req.PageNum, req.PageSize).Order("id desc").Where("owner_account_id=", req.SubUserID)
+// GetDeviceList retrieves a paginated list of devices for a specific sub-user.
+func (s *sSubControllerDeviceManagement) GetDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (*sms.SubDeviceListRes, error) {
+	// Initialize query builder with pagination and sorting.
+	query := dao.DeviceList.Ctx(ctx).
+		Page(req.PageNum, req.PageSize).
+		Order("id DESC").
+		Where("owner_account_id = ?", req.SubUserID)
 
-	if req.TaskName != "" {
-		dbTemper = dbTemper.Where("task_name like ?", "%"+req.TaskName+"%")
-	}
+	// Dynamically apply filters if provided.
+	query = applyDeviceFilters(query, req)
 
-	if req.SentStatus != 0 {
-		dbTemper = dbTemper.Where("sent_status = ?", req.SentStatus)
-	}
-
-	if len(req.Number) != 0 {
-		dbTemper = dbTemper.Where("number like ?", "%"+req.Number+"%")
-	}
-
-	if len(req.DeviceNumber) != 0 {
-		dbTemper = dbTemper.Where("device_number like ?", "%"+req.DeviceNumber+"%")
-	}
-
-	if len(req.SentDateRange) > 0 {
-		dbTemper = dbTemper.Where("start_at >= ? AND start_at <= ?", req.SentDateRange[0], req.SentDateRange[1])
-	}
-
-	if len(req.CreateDateRange) > 0 {
-		dbTemper = dbTemper.Where("create_at >= ? AND create_at <= ?", req.CreateDateRange[0], req.CreateDateRange[1])
-	}
-
+	// Fetch data and count total records.
+	var devices []*entity.DeviceList
 	var totalCount int
-	if err := dbTemper.ScanAndCount(&raw, &totalCount, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询 DeviceList 错误")
+	if err := query.ScanAndCount(&devices, &totalCount, false); err != nil {
+		g.Log().Error(ctx, "Error querying DeviceList:", err)
+		return nil, errors.New("failed to query DeviceList")
 	}
-	res = &sms.SubDeviceListRes{}
-	res.Total = totalCount
-	data := make([]sms.SubDeviceListResData, len(raw))
-	currentTime := gtime.Now()
-	for i := range raw {
-		data[i] = sms.SubDeviceListResData{
-			ID:            raw[i].Id,
-			DeviceNumber:  raw[i].DeviceNumber,
-			DeviceStatus:  raw[i].DeviceStatus,
-			SentStatus:    raw[i].SentStatus,
-			ProjectID:     raw[i].AssignedItemsId,
-			Number:        raw[i].Number,
-			ActiveDays:    int(currentTime.Sub(raw[i].ActiveTime).Hours() / 24),
-			OwnerAccount:  raw[i].OwnerAccount,
-			AssignedItems: raw[i].AssignedItems,
-			QuantitySent:  strconv.Itoa(raw[i].QuantitySent),
-			ActiveTime:    raw[i].ActiveTime.String(),
-		}
+
+	// Prepare response data.
+	response := &sms.SubDeviceListRes{
+		ListRes: commonApi.ListRes{
+			Total: totalCount,
+		},
+		Data: transformDeviceListData(devices),
 	}
-	res.Data = data
-	return
+
+	return response, nil
 }
 
-func (s *sSubControllerDeviceManagement) GroupCreate(ctx context.Context, req *sms.SubCreateGroupReq) (res *sms.SubCreateGroupRes, err error) {
-	if count, err := dao.SubGroup.Ctx(ctx).Where("sub_user_id = ?", req.SubUserID).Where("sub_group_name = ?", req.GroupName).Count(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("Count SubGroup DB 错误 ")
-	} else if count > 0 {
-		return nil, errors.New("此名称以存在 请更换分组名称")
+// applyDeviceFilters dynamically adds filters to the query based on the request.
+func applyDeviceFilters(query *gdb.Model, req *sms.SubDeviceListReq) *gdb.Model {
+	if req.TaskName != "" {
+		query = query.Where("task_name LIKE ?", "%"+req.TaskName+"%")
+	}
+	if req.SentStatus != 0 {
+		query = query.Where("sent_status = ?", req.SentStatus)
+	}
+	if len(req.Number) > 0 {
+		query = query.Where("number LIKE ?", "%"+req.Number+"%")
+	}
+	if len(req.DeviceNumber) > 0 {
+		query = query.Where("device_number LIKE ?", "%"+req.DeviceNumber+"%")
+	}
+	if len(req.SentDateRange) > 0 {
+		query = query.Where("start_at BETWEEN ? AND ?", req.SentDateRange[0], req.SentDateRange[1])
+	}
+	if len(req.CreateDateRange) > 0 {
+		query = query.Where("create_at BETWEEN ? AND ?", req.CreateDateRange[0], req.CreateDateRange[1])
+	}
+	return query
+}
+
+// transformDeviceListData converts raw device data into response format.
+func transformDeviceListData(devices []*entity.DeviceList) []sms.SubDeviceListResData {
+	data := make([]sms.SubDeviceListResData, len(devices))
+	currentTime := gtime.Now()
+
+	for i, device := range devices {
+		data[i] = sms.SubDeviceListResData{
+			ID:            device.Id,
+			DeviceNumber:  device.DeviceNumber,
+			DeviceStatus:  device.DeviceStatus,
+			SentStatus:    device.SentStatus,
+			ProjectID:     device.AssignedItemsId,
+			Number:        device.Number,
+			ActiveDays:    int(currentTime.Sub(device.ActiveTime).Hours() / 24),
+			OwnerAccount:  device.OwnerAccount,
+			AssignedItems: device.AssignedItems,
+			QuantitySent:  strconv.Itoa(device.QuantitySent),
+			ActiveTime:    device.ActiveTime.String(),
+		}
 	}
 
-	var project entity.ProjectList
-	c := 0
-	if err := dao.ProjectList.Ctx(ctx).Where("id = ?", req.ProjectID).ScanAndCount(&project, &c, false); err != nil {
+	return data
+}
+
+// GroupCreate handles the creation of a new group for a specific sub-user.
+func (s *sSubControllerDeviceManagement) GroupCreate(ctx context.Context, req *sms.SubCreateGroupReq) (*sms.SubCreateGroupRes, error) {
+	// Check if the group name already exists for the sub-user
+	if exists, err := isGroupNameExists(ctx, req.SubUserID, req.GroupName); err != nil {
 		g.Log().Error(ctx, err)
-		return nil, errors.New("Scan ProjectList DB 错误 ")
-	} else if c == 0 {
-		return nil, errors.New("Project ID 错误 所查询的Project 不存在 ")
+		return nil, errors.New("failed to check group name in SubGroup database")
+	} else if exists {
+		return nil, errors.New("group name already exists, please choose another name")
+	}
+
+	// Validate the project details
+	//project, err := validateProjectForGroup(ctx, req.ProjectID, req.SubUserID)
+	_, err := validateProjectForGroup(ctx, req.ProjectID, req.SubUserID)
+	if err != nil {
+		g.Log().Error(ctx, err)
+		return nil, err
+	}
+
+	// Create the group
+	groupID, err := createGroupInDatabase(ctx, req.SubUserID, req.GroupName, req.ProjectID)
+	if err != nil {
+		g.Log().Error(ctx, err)
+		return nil, errors.New("failed to create group in SubGroup database")
+	}
+
+	// Return the response
+	return &sms.SubCreateGroupRes{
+		ID: groupID,
+	}, nil
+}
+
+// isGroupNameExists checks if a group name already exists for the specified sub-user.
+func isGroupNameExists(ctx context.Context, subUserID int64, groupName string) (bool, error) {
+	count, err := dao.SubGroup.Ctx(ctx).
+		Where("sub_user_id = ?", subUserID).
+		Where("sub_group_name = ?", groupName).
+		Count()
+	if err != nil {
+		return false, err
+	}
+	return count > 0, nil
+}
+
+// validateProjectForGroup validates if the project exists and is assigned to the correct sub-user.
+func validateProjectForGroup(ctx context.Context, projectID, subUserID int64) (*entity.ProjectList, error) {
+	var project entity.ProjectList
+	var count int
+	err := dao.ProjectList.Ctx(ctx).
+		Where("id = ?", projectID).
+		ScanAndCount(&project, &count, false)
+	if err != nil {
+		return nil, errors.New("failed to scan ProjectList database")
+	}
+	if count == 0 {
+		return nil, errors.New("invalid Project ID: project does not exist")
 	}
 	if project.AssociatedAccountId == 0 {
-		return nil, errors.New("非法创建 当前项目还未分配")
+		return nil, errors.New("invalid operation: the project has not been assigned")
 	}
-	if project.AssociatedAccountId != req.SubUserID {
-		return nil, errors.New("非法创建 这个项目所分配的子用户不是当前子用户")
+	if int64(project.AssociatedAccountId) != subUserID {
+		return nil, errors.New("invalid operation: the project is not assigned to the current sub-user")
 	}
+	return &project, nil
+}
 
-	var rawId int64
-	if rawId, err = dao.SubGroup.Ctx(ctx).Data(g.Map{"sub_user_id": req.SubUserID, "sub_group_name": req.GroupName, "project_id": req.ProjectID}).InsertAndGetId(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("SubGroup 分组创建失败")
+// createGroupInDatabase inserts a new group into the SubGroup database.
+func createGroupInDatabase(ctx context.Context, subUserID int64, groupName string, projectID int64) (int64, error) {
+	groupID, err := dao.SubGroup.Ctx(ctx).
+		Data(g.Map{"sub_user_id": subUserID, "sub_group_name": groupName, "project_id": projectID}).
+		InsertAndGetId()
+	if err != nil {
+		return 0, err
 	}
-	res = &sms.SubCreateGroupRes{
-		ID: rawId,
-	}
-	return
+	return groupID, nil
 }
 
 func (s *sSubControllerDeviceManagement) GroupUpdate(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error) {
@@ -155,29 +219,40 @@ func (s *sSubControllerDeviceManagement) DeleteGroup(ctx context.Context, req *s
 	return &sms.SubDeleteGroupRes{}, nil
 }
 
-// Get Group List
+// ListUserGroups retrieves the list of groups for a specific sub-user.
+func (s *sSubControllerDeviceManagement) ListUserGroups(ctx context.Context, req *sms.SubGroupListReq) (*sms.SubGroupListRes, error) {
+	// Declare a slice to store the group data.
+	var groups []*entity.SubGroup
+	var totalGroups int
+	// Query the database for groups associated with the SubUserID.
+	err := dao.SubGroup.Ctx(ctx).
+		Where("sub_user_id = ?", req.SubUserID).
+		ScanAndCount(&groups, &totalGroups, false)
+	if err != nil {
+		g.Log().Error(ctx, "Failed to query groups:", err)
+		return nil, errors.New("failed to query user groups")
+	}
 
-func (s *sSubControllerDeviceManagement) GroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error) {
-	var data []*entity.SubGroup
-	c := 0
-	if err = dao.SubGroup.Ctx(ctx).Where("sub_user_id=?", req.SubUserID).ScanAndCount(&data, &c, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("分组查询失败")
+	// Check if no groups were found.
+	if totalGroups == 0 {
+		return nil, errors.New("no groups found for the current user")
 	}
-	if c == 0 {
-		return nil, errors.New("当前用户无分组")
+
+	// Prepare the response structure.
+	response := &sms.SubGroupListRes{
+		Data: make([]sms.SubGroupListResData, len(groups)),
 	}
-	res = &sms.SubGroupListRes{
-		Data: make([]sms.SubGroupListResData, len(data)),
-	}
-	for i := range data {
-		res.Data[i] = sms.SubGroupListResData{
-			GroupName: data[i].SubGroupName,
-			GroupID:   data[i].Id,
-			ProjectID: data[i].ProjectId,
+
+	// Populate the response data.
+	for i, group := range groups {
+		response.Data[i] = sms.SubGroupListResData{
+			GroupName: group.SubGroupName,
+			GroupID:   group.Id,
+			ProjectID: group.ProjectId,
 		}
 	}
-	return
+
+	return response, nil
 }
 
 // AllocateDevice2Group allocates a list of devices to a specified group.
@@ -293,7 +368,7 @@ func validateDeviceOwnership(ctx context.Context, deviceID, subUserID, projectID
 		return fmt.Errorf("failed to validate device ownership: %w", err)
 	}
 	if count == 0 {
-		return fmt.Errorf("invalid DeviceID=%d or SubUserID=%d, please verify the input", deviceID, subUserID)
+		return fmt.Errorf("invalid ProjectID=%d DeviceID=%d or SubUserID=%d, please verify the input", projectID, deviceID, subUserID)
 	}
 
 	return nil

@@ -24,46 +24,59 @@ func init() {
 
 type sMainControllerSmsManagement struct{}
 
-func (s *sMainControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error) {
-	sand := dao.SmsMissionReport.Ctx(ctx).Page(req.PageNum, req.PageSize)
+// GetTaskList retrieves a paginated list of SMS tasks based on filters.
+func (s *sMainControllerSmsManagement) GetTaskList(ctx context.Context, req *sms.TaskListReq) (*sms.TaskListRes, error) {
+	// Initialize the query builder for SmsMissionReport with pagination.
+	query := dao.SmsMissionReport.Ctx(ctx).Page(req.PageNum, req.PageSize)
+
+	// Apply filters to the query if provided.
 	if req.ProjectID != 0 {
-		sand = sand.Where("project_id = ?", req.ProjectID)
+		query = query.Where("project_id = ?", req.ProjectID)
 	}
-	if len(req.TaskName) != 0 {
-		sand = sand.Where("task_name like ?", "%"+req.TaskName+"%")
+	if len(req.TaskName) > 0 {
+		query = query.Where("task_name LIKE ?", "%"+req.TaskName+"%")
+	}
+	if len(req.DateRange) > 0 {
+		query = query.Where("create_at BETWEEN ? AND ?", req.DateRange[0], req.DateRange[1])
 	}
 
-	if len(req.DateRange) > 0 {
-		sand = sand.Where("create_at >= ? AND create_at <= ?", req.DateRange[0], req.DateRange[1])
-	}
-	var data []entity.SmsMissionReport
+	// Execute the query and count the total number of records.
+	var tasks []entity.SmsMissionReport
 	var totalCount int
-	if err = sand.ScanAndCount(&data, &totalCount, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询DB SmsMissionReport 错误")
+	if err := query.ScanAndCount(&tasks, &totalCount, false); err != nil {
+		g.Log().Error(ctx, "Failed to query SmsMissionReport:", err)
+		return nil, errors.New("failed to query SmsMissionReport")
 	}
-	res = &sms.TaskListRes{}
-	res.Total = totalCount
-	res.Data = make([]sms.TaskListResData, len(data))
-	for i := range data {
-		res.Data[i] = sms.TaskListResData{
-			ID:                data[i].Id,
-			ProjectID:         data[i].ProjectId,
-			ProjectName:       data[i].ProjectName,
-			TaskName:          data[i].TaskName,
-			FileName:          data[i].FileName,
-			DeviceQuota:       data[i].DeviceQuota,
-			TaskStatus:        data[i].TaskStatus,
-			SmsQuantity:       data[i].SmsQuantity,
-			SurplusQuantity:   data[i].SurplusQuantity,
-			QuantitySent:      data[i].QuantitySent,
-			AssociatedAccount: data[i].AssociatedAccount,
-			IntervalTime:      data[i].IntervalTime,
-			StartTime:         data[i].StartTime.String(),
-			CreateTime:        data[i].CreatedAt.String(),
+
+	// Build the response.
+	response := &sms.TaskListRes{
+		ListRes: commonApi.ListRes{
+			Total: totalCount,
+		},
+		Data: make([]sms.TaskListResData, len(tasks)),
+	}
+
+	// Populate the response data.
+	for i, task := range tasks {
+		response.Data[i] = sms.TaskListResData{
+			ID:                task.Id,
+			ProjectID:         task.ProjectId,
+			ProjectName:       task.ProjectName,
+			TaskName:          task.TaskName,
+			FileName:          task.FileName,
+			DeviceQuota:       task.DeviceQuota,
+			TaskStatus:        task.TaskStatus,
+			SmsQuantity:       task.SmsQuantity,
+			SurplusQuantity:   task.SurplusQuantity,
+			QuantitySent:      task.QuantitySent,
+			AssociatedAccount: task.AssociatedAccount,
+			IntervalTime:      task.IntervalTime,
+			StartTime:         task.StartTime.String(),
+			CreateTime:        task.CreatedAt.String(),
 		}
 	}
-	return
+
+	return response, nil
 }
 
 // GetTaskRecordList retrieves a paginated list of task records based on the provided filters.

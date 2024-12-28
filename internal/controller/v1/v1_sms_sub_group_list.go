@@ -8,5 +8,5 @@ import (
 )
 
 func (c *ControllerSms) SubGroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error) {
-	return service.SubControllerDeviceManagement().GroupList(ctx, req)
+	return service.SubControllerDeviceManagement().ListUserGroups(ctx, req)
 }
