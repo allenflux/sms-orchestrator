@@ -83,6 +83,13 @@ var (
 				)
 			})
 
+			apiServer.Group("/api/v1/sms/sub/all-user", func(group *ghttp.RouterGroup) {
+				group.Middleware(ghttp.MiddlewareHandlerResponse, MiddlewareCORS)
+				group.Bind(
+					v1.NewAllUser(),
+				)
+			})
+
 			apiServer.Group("/api/v1/sms/role", func(group *ghttp.RouterGroup) {
 				group.Middleware(
 					MiddlewareCORS, ghttp.MiddlewareHandlerResponse,

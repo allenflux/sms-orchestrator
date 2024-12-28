@@ -8,5 +8,5 @@ import (
 )
 
 func (c *ControllerSms) SubDeleteGroup(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error) {
-	return service.SubControllerDeviceManagement().GroupDelete(ctx, req)
+	return service.SubControllerDeviceManagement().DeleteGroup(ctx, req)
 }

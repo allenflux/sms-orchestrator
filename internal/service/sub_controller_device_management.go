@@ -15,7 +15,8 @@ type (
 		GetDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (res *sms.SubDeviceListRes, err error)
 		GroupCreate(ctx context.Context, req *sms.SubCreateGroupReq) (res *sms.SubCreateGroupRes, err error)
 		GroupUpdate(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error)
-		GroupDelete(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error)
+		// DeleteGroup deletes a group if there are no devices associated with it.
+		DeleteGroup(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error)
 		GroupList(ctx context.Context, req *sms.SubGroupListReq) (res *sms.SubGroupListRes, err error)
 		// AllocateDevice2Group allocates a list of devices to a specified group.
 		// It validates the group ID, sub-user ID, and device IDs before updating the database.

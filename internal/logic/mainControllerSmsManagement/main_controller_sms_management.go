@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/gogf/gf/v2/database/gdb"
 	"github.com/gogf/gf/v2/frame/g"
 	commonApi "sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
@@ -65,63 +66,82 @@ func (s *sMainControllerSmsManagement) GetTaskList(ctx context.Context, req *sms
 	return
 }
 
-func (s *sMainControllerSmsManagement) GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (res *sms.TaskRecordRes, err error) {
-	sand := dao.SmsMissionRecord.Ctx(ctx).Page(req.PageNum, req.PageSize)
-	if req.ProjectID != 0 {
-		sand = sand.Where("project_id = ?", req.ProjectID)
-	}
+// GetTaskRecordList retrieves a paginated list of task records based on the provided filters.
+func (s *sMainControllerSmsManagement) GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (*sms.TaskRecordRes, error) {
+	// Initialize the query builder
+	query := dao.SmsMissionRecord.Ctx(ctx).
+		Page(req.PageNum, req.PageSize).
+		OrderDesc("id")
 
-	if req.SmsStatus != 0 {
-		sand = sand.Where("sms_status = ?", req.SmsStatus)
-	}
+	// Apply dynamic filters
+	query = applyTaskRecordFilters(query, req)
 
-	if len(req.TaskName) != 0 {
-		sand = sand.Where("task_name like ?", "%"+req.TaskName+"%")
-	}
-
-	if len(req.TargetPhoneNumber) != 0 {
-		sand = sand.Where("target_phone_number like ?", "%"+req.TargetPhoneNumber+"%")
-	}
-
-	if len(req.DeviceNumber) != 0 {
-		sand = sand.Where("device_number like ?", "%"+req.DeviceNumber+"%")
-	}
-
-	if len(req.SentDateRange) > 0 {
-		sand = sand.Where("start_time >= ? AND start_time <= ?", req.SentDateRange[0], req.SentDateRange[1])
-	}
-
-	if len(req.CreateDateRange) > 0 {
-		sand = sand.Where("created_at >= ? AND created_at <= ?", req.CreateDateRange[0], req.CreateDateRange[1])
-	}
-
-	var data []entity.SmsMissionRecord
+	// Fetch data and count
+	var records []entity.SmsMissionRecord
 	var totalCount int
-	if err = sand.ScanAndCount(&data, &totalCount, false); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("查询DB SmsMissionRecord 错误")
+	if err := query.ScanAndCount(&records, &totalCount, false); err != nil {
+		g.Log().Errorf(ctx, "Failed to query SmsMissionRecord: %v", err)
+		return nil, errors.New("failed to query SmsMissionRecord")
 	}
-	res = &sms.TaskRecordRes{}
-	res.Total = totalCount
-	res.Data = make([]sms.TaskRecordResData, len(data))
-	for i := range data {
-		res.Data[i] = sms.TaskRecordResData{
-			ID:                data[i].Id,
-			TaskName:          data[i].TaskName,
-			SubTaskID:         data[i].SubTaskId,
-			TargetPhoneNumber: data[i].TargetPhoneNumber,
-			DeviceNumber:      data[i].DeviceNumber,
-			SmsTopic:          data[i].SmsTopic,
-			SmsContent:        data[i].SmsContent,
-			SmsStatus:         data[i].SmsStatus,
-			Reason:            data[i].Reason,
-			AssociatedAccount: data[i].AssociatedAccount,
-			ProjectName:       data[i].ProjectName,
-			StartTime:         data[i].StartTime.String(),
-			CreateTime:        data[i].CreatedAt.String(),
+
+	// Transform data for the response
+	res := &sms.TaskRecordRes{
+		ListRes: commonApi.ListRes{
+			Total: totalCount,
+		},
+		Data: transformTaskRecordData(records),
+	}
+
+	return res, nil
+}
+
+// applyTaskRecordFilters dynamically applies filters to the query.
+func applyTaskRecordFilters(query *gdb.Model, req *sms.TaskRecordReq) *gdb.Model {
+	if req.ProjectID != 0 {
+		query = query.Where("project_id = ?", req.ProjectID)
+	}
+	if req.SmsStatus != 0 {
+		query = query.Where("sms_status = ?", req.SmsStatus)
+	}
+	if len(req.TaskName) != 0 {
+		query = query.Where("task_name LIKE ?", "%"+req.TaskName+"%")
+	}
+	if len(req.TargetPhoneNumber) != 0 {
+		query = query.Where("target_phone_number LIKE ?", "%"+req.TargetPhoneNumber+"%")
+	}
+	if len(req.DeviceNumber) != 0 {
+		query = query.Where("device_number LIKE ?", "%"+req.DeviceNumber+"%")
+	}
+	if len(req.SentDateRange) > 0 {
+		query = query.Where("start_time >= ? AND start_time <= ?", req.SentDateRange[0], req.SentDateRange[1])
+	}
+	if len(req.CreateDateRange) > 0 {
+		query = query.Where("created_at >= ? AND created_at <= ?", req.CreateDateRange[0], req.CreateDateRange[1])
+	}
+	return query
+}
+
+// transformTaskRecordData transforms the raw entity data into response data.
+func transformTaskRecordData(records []entity.SmsMissionRecord) []sms.TaskRecordResData {
+	data := make([]sms.TaskRecordResData, len(records))
+	for i, record := range records {
+		data[i] = sms.TaskRecordResData{
+			ID:                record.Id,
+			TaskName:          record.TaskName,
+			SubTaskID:         record.SubTaskId,
+			TargetPhoneNumber: record.TargetPhoneNumber,
+			DeviceNumber:      record.DeviceNumber,
+			SmsTopic:          record.SmsTopic,
+			SmsContent:        record.SmsContent,
+			SmsStatus:         record.SmsStatus,
+			Reason:            record.Reason,
+			AssociatedAccount: record.AssociatedAccount,
+			ProjectName:       record.ProjectName,
+			StartTime:         record.StartTime.String(),
+			CreateTime:        record.CreatedAt.String(),
 		}
 	}
-	return
+	return data
 }
 
 // GetSubGetConversationRecord retrieves a specific conversation record by delegating the request to the sub-controller service.
@@ -138,7 +158,6 @@ func (s *sMainControllerSmsManagement) GetSubGetConversationRecord(ctx context.C
 	subReq := &sms.SubGetConversationRecordReq{
 		ChatLogID: req.ChatLogID,
 	}
-
 	// Delegate the request to the sub-controller service
 	subRes, err := service.SubControllerSmsManagement().GetSubGetConversationRecord(ctx, subReq)
 	if err != nil {
@@ -189,6 +208,32 @@ func (s *sMainControllerSmsManagement) GetConversationRecordList(ctx context.Con
 
 	g.Log().Infof(ctx, "Successfully fetched conversation records for ProjectID=%d, Total=%d", req.ProjectID, subRes.Total)
 	return res, nil
+}
+
+// PostConversationRecord handles posting conversation records and forwards the request to the sub-controller.
+func (s *sMainControllerSmsManagement) PostConversationRecord(ctx context.Context, req *sms.PostConversationRecordReq) (*sms.PostConversationRecordRes, error) {
+	// Forward the request to the sub-controller
+	subRes, err := forwardConversationRecordRequest(ctx, req.SubPostConversationRecordReq)
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to post conversation record: %v", err)
+		return nil, fmt.Errorf("failed to post conversation record: %w", err)
+	}
+
+	// Prepare and return the response
+	return &sms.PostConversationRecordRes{
+		SubPostConversationRecordRes: subRes,
+	}, nil
+}
+
+// forwardConversationRecordRequest forwards the conversation record request to the sub-controller.
+func forwardConversationRecordRequest(ctx context.Context, subReq *sms.SubPostConversationRecordReq) (*sms.SubPostConversationRecordRes, error) {
+	subRes, err := service.SubControllerSmsManagement().PostConversationRecord(ctx, subReq)
+	if err != nil {
+		return nil, fmt.Errorf("error from sub-controller: %w", err)
+	}
+
+	g.Log().Infof(ctx, "Successfully forwarded conversation record request: %+v", subReq)
+	return subRes, nil
 }
 
 // GetTaskDevices retrieves the list of devices assigned to a specific task (group ID) with pagination support.

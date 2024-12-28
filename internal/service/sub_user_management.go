@@ -12,7 +12,7 @@ import (
 
 type (
 	ISubUser interface {
-		GetList(ctx context.Context, req *subUser.SubGetListReq) (res *subUser.SubGetListRes, err error)
+		GetList(ctx context.Context, req *subUser.SubGetListReq) (*subUser.SubGetListRes, error)
 		CreatedSubUser(ctx context.Context, req *subUser.SubRegisterReq) (res *subUser.SubRegisterRes, err error)
 		UpdateSubUser(ctx context.Context, req *subUser.SubUpdateReq) (res *subUser.SubUpdateRes, err error)
 		ChangeStatus(ctx context.Context, req *subUser.SubChangeStatusReq) (res *subUser.SubChangeStatusRes, err error)

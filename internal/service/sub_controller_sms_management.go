@@ -24,7 +24,8 @@ type (
 		// - error: An error if the operation fails.
 		TaskCreate(ctx context.Context, req *sms.SubTaskCreateReq) (*sms.SubTaskCreateRes, error)
 		TaskFileDownload(ctx context.Context, req *sms.TaskFileDownloadReq) (res *sms.TaskFileDownloadRes, err error)
-		TaskReportDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (res *sms.SubTaskDeleteRes, err error)
+		// TaskReportDelete handles the recall of a task by updating its status in the SmsMissionReport table.
+		TaskReportDelete(ctx context.Context, req *sms.SubTaskDeleteReq) (*sms.SubTaskDeleteRes, error)
 		// GetSubGetConversationRecord retrieves a detailed conversation record list for a specific ChatLogID.
 		//
 		// Parameters:
@@ -46,7 +47,8 @@ type (
 		// - error: An error if the operation fails.
 		SubGetConversationRecordList(ctx context.Context, req *sms.SubGetConversationRecordListReq) (*sms.SubGetConversationRecordListRes, error)
 		GetTaskRecordList(ctx context.Context, req *sms.SubTaskRecordReq) (res *sms.SubTaskRecordRes, err error)
-		PostConversationRecord(ctx context.Context, req *sms.SubPostConversationRecordReq) (res *sms.SubPostConversationRecordRes, err error)
+		// PostConversationRecord receives input from a Sub User and stores it in the cache as a priority task for a Device to execute.
+		PostConversationRecord(ctx context.Context, req *sms.SubPostConversationRecordReq) (*sms.SubPostConversationRecordRes, error)
 		// GetPendingTasks retrieves the pending tasks for a specific SMS mission.
 		//
 		// Parameters:

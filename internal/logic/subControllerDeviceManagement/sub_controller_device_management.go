@@ -130,14 +130,29 @@ func (s *sSubControllerDeviceManagement) GroupUpdate(ctx context.Context, req *s
 	return
 }
 
-func (s *sSubControllerDeviceManagement) GroupDelete(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error) {
-	// todo 设备分组被删除后，被删除分组的设备自动重置为未分组
-	// todo 设备存在待发送、发送中的任务，则发送状态为占用
-	if _, err = dao.SubGroup.Ctx(ctx).Where("id=?", req.GroupID).Delete(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("分组删除失败")
+// DeleteGroup deletes a group if there are no devices associated with it.
+func (s *sSubControllerDeviceManagement) DeleteGroup(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error) {
+	// Check if any devices are associated with the group
+	deviceCount, err := dao.DeviceList.Ctx(ctx).Where("group_id = ?", req.GroupID).Count()
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to count devices for GroupID=%d: %v", req.GroupID, err)
+		return nil, fmt.Errorf("failed to count devices for the group: %w", err)
 	}
-	return
+
+	// If devices exist, prevent deletion
+	if deviceCount > 0 {
+		g.Log().Warningf(ctx, "GroupID=%d cannot be deleted as it has associated devices", req.GroupID)
+		return nil, errors.New("group cannot be deleted as it contains associated devices")
+	}
+
+	// Proceed to delete the group
+	if _, err = dao.SubGroup.Ctx(ctx).Where("id = ?", req.GroupID).Delete(); err != nil {
+		g.Log().Errorf(ctx, "Failed to delete GroupID=%d: %v", req.GroupID, err)
+		return nil, fmt.Errorf("failed to delete group: %w", err)
+	}
+
+	g.Log().Infof(ctx, "Successfully deleted GroupID=%d", req.GroupID)
+	return &sms.SubDeleteGroupRes{}, nil
 }
 
 // Get Group List
@@ -205,7 +220,7 @@ func (s *sSubControllerDeviceManagement) AllocateDevice2Group(ctx context.Contex
 	// Allocate devices to the group
 	for _, deviceID := range req.DeviceIdList {
 		// Validate device ownership and existence
-		if err := validateDeviceOwnership(ctx, deviceID, req.SubUserID); err != nil {
+		if err := validateDeviceOwnership(ctx, deviceID, req.SubUserID, group.ProjectId); err != nil {
 			tx.Rollback()
 			return nil, err
 		}
@@ -267,10 +282,11 @@ func getGroupDetails(ctx context.Context, groupID, subUserID int) (*entity.SubGr
 }
 
 // Helper: Validate device ownership and existence
-func validateDeviceOwnership(ctx context.Context, deviceID, subUserID int) error {
+func validateDeviceOwnership(ctx context.Context, deviceID, subUserID, projectID int) error {
 	count, err := dao.DeviceList.Ctx(ctx).
 		Where("id = ?", deviceID).
 		Where("owner_account_id = ?", subUserID).
+		Where("assigned_items_id = ?", projectID).
 		Count()
 	if err != nil {
 		g.Log().Errorf(ctx, "Failed to query DeviceList for DeviceID=%d and SubUserID=%d: %v", deviceID, subUserID, err)
