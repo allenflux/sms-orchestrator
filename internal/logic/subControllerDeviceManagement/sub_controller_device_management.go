@@ -10,6 +10,7 @@ import (
 	commonApi "sms_backend/api/v1/common"
 	"sms_backend/api/v1/sms"
 	"sms_backend/internal/dao"
+	"sms_backend/internal/logic/mainControllerDeviceManagement"
 	"sms_backend/internal/model/entity"
 	"sms_backend/internal/service"
 	"sms_backend/utility"
@@ -86,17 +87,22 @@ func transformDeviceListData(devices []*entity.DeviceList) []sms.SubDeviceListRe
 
 	for i, device := range devices {
 		data[i] = sms.SubDeviceListResData{
-			ID:            device.Id,
-			DeviceNumber:  device.DeviceNumber,
-			DeviceStatus:  device.DeviceStatus,
-			SentStatus:    device.SentStatus,
-			ProjectID:     device.AssignedItemsId,
-			Number:        device.Number,
-			ActiveDays:    int(currentTime.Sub(device.ActiveTime).Hours() / 24),
-			OwnerAccount:  device.OwnerAccount,
-			AssignedItems: device.AssignedItems,
-			QuantitySent:  strconv.Itoa(device.QuantitySent),
-			ActiveTime:    device.ActiveTime.String(),
+			DeviceListResData: sms.DeviceListResData{
+				ID:            device.Id,
+				DeviceNumber:  device.DeviceNumber,
+				DeviceStatus:  device.DeviceStatus,
+				SentStatus:    device.SentStatus,
+				ProjectID:     device.AssignedItemsId,
+				Number:        mainControllerDeviceManagement.ConvertNoPhoneNumber(device.Number),
+				ActiveDays:    int(currentTime.Sub(device.ActiveTime).Hours() / 24),
+				OwnerAccount:  device.OwnerAccount,
+				AssignedItems: device.AssignedItems,
+				QuantitySent:  strconv.Itoa(device.QuantitySent),
+				ActiveTime:    device.ActiveTime.String(),
+				GroupName:     device.GroupName,
+				GroupID:       device.GroupId,
+				DeviceID:      mainControllerDeviceManagement.PrefixDeviceID + strconv.Itoa(device.Id),
+			},
 		}
 	}
 
@@ -234,9 +240,9 @@ func (s *sSubControllerDeviceManagement) ListUserGroups(ctx context.Context, req
 	}
 
 	// Check if no groups were found.
-	if totalGroups == 0 {
-		return nil, errors.New("no groups found for the current user")
-	}
+	//if totalGroups == 0 {
+	//	return nil, errors.New("no groups found for the current user")
+	//}
 
 	// Prepare the response structure.
 	response := &sms.SubGroupListRes{

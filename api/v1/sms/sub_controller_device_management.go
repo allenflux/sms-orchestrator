@@ -20,17 +20,7 @@ type SubDeviceListReq struct {
 }
 
 type SubDeviceListResData struct {
-	ID            int    `json:"id"`
-	ProjectID     int    `json:"project_id"`
-	DeviceNumber  string `json:"device_number"`
-	Number        string `json:"number"`
-	ActiveDays    int    `json:"active_days"`
-	OwnerAccount  string `json:"owner_account"`
-	AssignedItems string `json:"assigned_items"`
-	SentStatus    int    `json:"sent_status" dc:"1 空闲 2 异常 3 占用"`
-	QuantitySent  string `json:"quantity_sent"`
-	DeviceStatus  int    `json:"device_status" dc:"1 空闲 2 异常 3 占用"`
-	ActiveTime    string `json:"active_time"`
+	DeviceListResData
 }
 
 type SubDeviceListRes struct {
