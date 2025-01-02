@@ -12,9 +12,11 @@ import (
 
 type (
 	ISubControllerDeviceManagement interface {
-		GetDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (res *sms.SubDeviceListRes, err error)
-		GroupCreate(ctx context.Context, req *sms.SubCreateGroupReq) (res *sms.SubCreateGroupRes, err error)
-		GroupUpdate(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error)
+		// GetDeviceList retrieves a paginated list of devices for a specific sub-user.
+		GetDeviceList(ctx context.Context, req *sms.SubDeviceListReq) (*sms.SubDeviceListRes, error)
+		// GroupCreate handles the creation of a new group for a specific sub-user.
+		GroupCreate(ctx context.Context, req *sms.SubCreateGroupReq) (*sms.SubCreateGroupRes, error)
+		UpdateGroup(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error)
 		// DeleteGroup deletes a group if there are no devices associated with it.
 		DeleteGroup(ctx context.Context, req *sms.SubDeleteGroupReq) (res *sms.SubDeleteGroupRes, err error)
 		// ListUserGroups retrieves the list of groups for a specific sub-user.

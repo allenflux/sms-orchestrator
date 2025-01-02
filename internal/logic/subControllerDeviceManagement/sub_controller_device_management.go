@@ -185,19 +185,33 @@ func createGroupInDatabase(ctx context.Context, subUserID int64, groupName strin
 	return groupID, nil
 }
 
-func (s *sSubControllerDeviceManagement) GroupUpdate(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error) {
-	if count, err := dao.SubGroup.Ctx(ctx).Where("sub_user_id = ?", req.SubUserID).Where("sub_group_name = ?", req.GroupName).Count(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("SubGroup 查询错误")
-	} else if count > 0 {
-		return nil, errors.New("此名称以存在 请更换分组名称再更新")
+func (s *sSubControllerDeviceManagement) UpdateGroup(ctx context.Context, req *sms.SubUpdateGroupReq) (res *sms.SubUpdateGroupRes, err error) {
+	// Check if the group name already exists for the user
+	count, err := dao.SubGroup.Ctx(ctx).
+		Where("sub_user_id = ?", req.SubUserID).
+		Where("sub_group_name = ?", req.GroupName).
+		Count()
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to query SubGroup for user_id='%d' and group_name='%s': %v", req.SubUserID, req.GroupName, err)
+		return nil, fmt.Errorf("failed to query SubGroup: %w", err)
+	}
+	if count > 0 {
+		return nil, errors.New("the group name already exists, please choose a different name")
 	}
 
-	if _, err = dao.SubGroup.Ctx(ctx).Data(g.Map{"sub_group_name": req.GroupName}).Where("id=?", req.GroupID).Update(); err != nil {
-		g.Log().Error(ctx, err)
-		return nil, errors.New("分组更新失败")
+	// Update the group name
+	_, err = dao.SubGroup.Ctx(ctx).
+		Data(g.Map{"sub_group_name": req.GroupName}).
+		Where("id = ?", req.GroupID).
+		Update()
+	if err != nil {
+		g.Log().Errorf(ctx, "Failed to update SubGroup for group_id='%d' with group_name='%s': %v", req.GroupID, req.GroupName, err)
+		return nil, fmt.Errorf("failed to update group: %w", err)
 	}
-	return
+
+	// Return success response
+	g.Log().Infof(ctx, "Successfully updated SubGroup for group_id='%d' with new group_name='%s'", req.GroupID, req.GroupName)
+	return &sms.SubUpdateGroupRes{}, nil
 }
 
 // DeleteGroup deletes a group if there are no devices associated with it.
