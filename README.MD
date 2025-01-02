@@ -14,6 +14,40 @@ To address these challenges, the SMS Task Management Platform introduces an auto
 ## Value of the Platform  
 Value of the Platform
 
+```shell
++---------------------------------------------------------+
+|                Future Development & AI Integration      |
++---------------------------------------------------------+
+                           |
+           +-----------------------------------+
+           |          Core AI Functions       |
+           +-----------------------------------+
+                           |
+    +------------------+------------------+------------------+
+    |                  |                  |                  |
++----------------+ +----------------+ +----------------+ +----------------+
+| Smart Task     | | Automated      | | Anomaly        | | Predictive     |
+| Allocation     | | Content        | | Detection      | | Analytics      |
+| - Optimize     | | Creation       | | - Monitor SMS  | | - Proactive    |
+|   Scheduling   | | - Personalized | |   Delivery     | |   Resolution   |
+| - AI-Driven    | |   Templates    | | - Predict      | | - Real-Time    |
+|   Distribution | | - Dynamic NLP  | |   Failures     | |   Suggestions  |
++----------------+ +----------------+ +----------------+ +----------------+
+                           |
+           +-----------------------------------+
+           |          Business Value           |
+           +-----------------------------------+
+                           |
+    +------------------+------------------+------------------+
+    |                  |                  |                  |
++----------------+ +----------------+ +----------------+ +----------------+
+| Improved       | | Enhanced       | | Cost           | | Better         |
+| Efficiency     | | Personalization| | Optimization   | | Decision-Making|
+| - Dynamic Task | | - Engage Users | | - Optimize     | | - AI-Driven    |
+|   Management   | |   Effectively  | |   Resources    | |   Insights     |
++----------------+ +----------------+ +----------------+ +----------------+
+```
+
 Key Features
 1.	Efficient Task Distribution: Automatically assigns SMS tasks to devices, ensuring balanced resource utilization.
 2.	Task Tracking and Management: Real-time monitoring of task execution and completion with detailed reporting.
@@ -43,8 +77,91 @@ Vision for the Future
 
 By combining AI with the SMS platform, the goal is to build an intelligent, scalable, and fully automated enterprise communication solution that optimizes the entire lifecycle, from task assignment to customer interaction.
 
+Project Roadmap  
+```shell
+      Q1 2025                 Q2 2025                  Q3 2025                  Q4 2025
++----------------+      +----------------+       +----------------+       +----------------+
+| Initial Setup  |      | AI Integration |       | Optimization   |       | Advanced AI    |
+| - Core Modules |      | - Smart Task   |       | - Performance  |       | Features       |
+| - System       |      |   Allocation   |       |   Tuning       |       | - Predictive   |
+|   Deployment   |      | - Basic NLP    |       | - User Feedback|       |   Analytics    |
+| - Basic Task   |      |   Models       |       |   Refinement   |       | - Full-scale   |
+|   Management   |      | - Anomaly      |       | - Monitoring   |       |   Automation   |
++----------------+      |   Detection    |       |   Expansion    |       | - Market-ready |
+                        +----------------+       +----------------+       +----------------+
+                                |                           |                          |
+                                V                           V                          V
+                      +----------------+       +----------------+       +----------------+
+                      | Customer Behavior|     | Enhanced Models|       | AI-Driven     |
+                      | Analysis         |     | - Refined NLP  |       | Decision-Making|
+                      | - Data Feedback  |     | - Improved     |       | - Seamless    |
+                      | - Insights       |     |   Prediction   |       |   Integration |
+                      +------------------+     +----------------+       +----------------+
+```
+
 ---
 ## System Architecture  
+```shell
+                +-------------------+
+                |   Task Creation   |
+                |  (File/API Input) |
+                +-------------------+
+                        |
+        +----------------------------------------------+
+        |              Scheduling Module               |
+        |     (Task Allocation & Load Balancing)       |
+        +----------------------------------------------+
+         /                       |                     \
+        /                        |                      \
++-------------------+   +---------------------+   +---------------------+
+|  Device Management|   |     Task Execution  |   |  Result Management  |
+|  (Register/Group) |   | (Fetch & Report SMS)|   | (Track Results &    |
+|                   |   |                     |   | Historical Queries) |
++-------------------+   +---------------------+   +---------------------+
+          \                       |                     /
+           \                      |                    /
+            \                     |                   /
+             +--------------------------------------+
+             |          Logging & Monitoring        |
+             |    (Performance Monitoring & Alerts) |
+             +--------------------------------------+
+```
+Workflow
+```shell
+1. Task Creation
+   +--------------------------------+
+   | Task Created via File or API   |
+   +--------------------------------+
+               |
+               V
+2. Task Scheduling
+   +--------------------------------+
+   | Intelligent Task Allocation    |
+   |   to Devices via Scheduler     |
+   +--------------------------------+
+               |
+               V
+3. Task Execution
+   +--------------------------------+
+   | Devices Fetch Tasks and Send   |
+   | SMS, Reporting Status Back     |
+   +--------------------------------+
+               |
+               V
+4. Result Management
+   +--------------------------------+
+   | Results Recorded and Analyzed  |
+   | Stored for Historical Queries  |
+   +--------------------------------+
+               |
+               V
+5. Monitoring
+   +--------------------------------+
+   | Log Tracking and Performance   |
+   | Monitoring with Alerts         |
+   +--------------------------------+
+```
+
 Technology Stack
 -	Programming Language: Go
 -	Frameworks: Gin (Web Framework), GORM (ORM Framework)
