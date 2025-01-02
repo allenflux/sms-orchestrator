@@ -12,7 +12,8 @@ import (
 
 type (
 	IMainControllerSmsManagement interface {
-		GetTaskList(ctx context.Context, req *sms.TaskListReq) (res *sms.TaskListRes, err error)
+		// GetTaskList retrieves a paginated list of SMS tasks based on filters.
+		GetTaskList(ctx context.Context, req *sms.TaskListReq) (*sms.TaskListRes, error)
 		// GetTaskRecordList retrieves a paginated list of task records based on the provided filters.
 		GetTaskRecordList(ctx context.Context, req *sms.TaskRecordReq) (*sms.TaskRecordRes, error)
 		// GetSubGetConversationRecord retrieves a specific conversation record by delegating the request to the sub-controller service.

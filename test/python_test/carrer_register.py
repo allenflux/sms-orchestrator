@@ -62,7 +62,8 @@ def m_register():
     #         "1545101380",
     #     ]
     num_list = [
-        "test",
+        "1100801603",
+        "2766078923"
     ]
     res_id_list = []
     for device_no in num_list:
