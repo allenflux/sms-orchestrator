@@ -9,8 +9,10 @@ require (
 	github.com/casbin/casbin/v2 v2.102.0
 	github.com/gogf/gf/contrib/drivers/mysql/v2 v2.8.1
 	github.com/gogf/gf/v2 v2.8.1
+	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6
+	github.com/google/uuid v1.6.0
 	github.com/gorilla/websocket v1.5.3
-	github.com/pquerna/ffjson v0.0.0-20190930134022-aa0246cd15f7
+	github.com/pkg/errors v0.9.1
 	github.com/qingwave/mossdb v0.0.0-20230811022036-53619cb447a8
 	github.com/spf13/cast v1.7.0
 	github.com/tencentyun/cos-go-sdk-v5 v0.7.59
@@ -41,12 +43,10 @@ require (
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.2.1 // indirect
 	github.com/golang/glog v1.0.0 // indirect
-	github.com/golang/groupcache v0.0.0-20190702054246-869f871628b6 // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/google/flatbuffers v1.12.1 // indirect
 	github.com/google/go-querystring v1.0.0 // indirect
-	github.com/google/uuid v1.6.0 // indirect
 	github.com/grokify/html-strip-tags-go v0.1.0 // indirect
 	github.com/klauspost/compress v1.12.3 // indirect
 	github.com/magiconair/properties v1.8.7 // indirect
@@ -56,7 +56,6 @@ require (
 	github.com/mitchellh/mapstructure v1.4.3 // indirect
 	github.com/mozillazg/go-httpheader v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5 // indirect
-	github.com/pkg/errors v0.9.1 // indirect
 	github.com/qingwave/gocorex v0.0.0-20230223021023-ff62fa184778 // indirect
 	github.com/redis/go-redis/v9 v9.6.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
@@ -68,6 +67,6 @@ require (
 	golang.org/x/net v0.32.0 // indirect
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	google.golang.org/protobuf v1.28.1 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
