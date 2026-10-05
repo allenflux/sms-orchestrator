@@ -8,5 +8,5 @@ import (
 )
 
 func (c *ControllerSms) ProjectDelete(ctx context.Context, req *sms.ProjectDeleteReq) (res *sms.ProjectDeleteRes, err error) {
-	return service.SubControllerSmsManagement().TaskReportDelete(ctx, req)
+	return service.MainControllerProjectManagement().DeleteProject(ctx, req)
 }
