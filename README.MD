@@ -164,7 +164,7 @@ Workflow
 
 Technology Stack
 -	Programming Language: Go
--	Frameworks: Gin (Web Framework), GORM (ORM Framework)
+-	Framework: GoFrame v2.8.1 (HTTP server and database ORM)
 -	Database: MySQL
 -	Cache: Redis
 -	Task Queue: Based on Redis or other distributed queuing systems
@@ -187,8 +187,8 @@ Core Modules
 Installation Steps  
 - Clone the repository:
 ```shell
-git clone https://github.com/your-repo/sms-platform.git
-cd sms-platform
+git clone https://github.com/allenflux/sms-orchestrator.git
+cd sms-orchestrator
 ```
 - Import the database schema:
 ```shell
